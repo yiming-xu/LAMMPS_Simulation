@@ -333,36 +333,36 @@ class LAMMPS:
 
         parameters = self.parameters
         if 'package' in parameters:
-            f.write(('\n'.join(['package {0}'.format(p)
+            f.write(('\n'.join(['package\t {0}'.format(p)
                                 for p in parameters['package']]) +
                      '\n').encode('utf-8'))
 
         pbc = self.atoms.get_pbc()
 
         if 'units' in parameters:
-            f.write('units {0} \n'.format(parameters['units']).encode('utf-8'))
+            f.write('units\t\t {0} \n'.format(parameters['units']).encode('utf-8'))
         else:
-            f.write('units metal \n'.encode('utf-8'))
+            f.write('units\t\t metal \n'.encode('utf-8'))
         
         if 'atom_style' in parameters:
-            f.write('atom_style {0} \n'.format(parameters['atom_style']).encode('utf-8'))
+            f.write('atom_style\t {0} \n'.format(parameters['atom_style']).encode('utf-8'))
 
         if 'boundary' in parameters:
-            f.write('boundary {0} \n'.format(
+            f.write('boundary\t {0} \n'.format(
                 parameters['boundary']).encode('utf-8'))
         else:
-            f.write('boundary {0} {1} {2} \n'.format(
+            f.write('boundary\t {0} {1} {2} \n'.format(
                     *tuple('sp'[x] for x in pbc)).encode('utf-8'))
-        f.write('atom_modify sort 0 0.0 \n'.encode('utf-8'))
+        f.write('atom_modify\t sort 0 0.0 \n'.encode('utf-8'))
 
         for key in ('neighbor', 'newton'):
             if key in parameters:
-                f.write('{0} {1} \n'.format(
+                f.write('{0}\t {1} \n'.format(
                     key, parameters[key]).encode('utf-8'))
         f.write('\n'.encode('utf-8'))
 
         if 'neigh_modify' in parameters:
-            f.write(('\n'.join(['neigh_modify {0}'.format(p)
+            f.write(('\n'.join(['neigh_modify\t {0}'.format(p)
                                 for p in parameters['neigh_modify']]) +
                      '\n').encode('utf-8'))
 
@@ -375,15 +375,15 @@ class LAMMPS:
                                  for x in self.atoms.get_cell()]
                                 ).encode('utf-8'))
 
-            f.write('lattice sc 1.0\n'.encode('utf-8'))
+            f.write('lattice\t\t sc 1.0\n'.encode('utf-8'))
             xhi, yhi, zhi, xy, xz, yz = self.prism.get_lammps_prism_str()
             if self.always_triclinic or self.prism.is_skewed():
-                f.write('region asecell prism 0.0 {0} 0.0 {1} 0.0 {2} '
+                f.write('region\t\t asecell prism 0.0 {0} 0.0 {1} 0.0 {2} '
                         ''.format(xhi, yhi, zhi).encode('utf-8'))
                 f.write('{0} {1} {2} side in units box\n'
                         ''.format(xy, xz, yz).encode('utf-8'))
             else:
-                f.write(('region asecell block 0.0 {0} 0.0 {1} 0.0 {2} '
+                f.write(('region\t\t asecell block 0.0 {0} 0.0 {1} 0.0 {2} '
                          'side in units box\n').format(
                              xhi, yhi, zhi).encode('utf-8'))
 
@@ -398,7 +398,7 @@ class LAMMPS:
             n_atom_types = len(species)
             species_i = dict([(s, i + 1) for i, s in enumerate(species)])
 
-            f.write('create_box {0} asecell\n'.format(
+            f.write('create_box\t {0} asecell\n'.format(
                 n_atom_types).encode('utf-8'))
             for s, pos in zip(symbols, self.atoms.get_positions()):
                 if self.keep_tmp_files:
@@ -412,68 +412,68 @@ class LAMMPS:
 
         # if NOT self.no_lammps_data, then simply refer to the data-file
         else:
-            f.write('read_data {0}\n'.format(lammps_data).encode('utf-8'))
+            f.write('read_data\t {0}\n'.format(lammps_data).encode('utf-8'))
 
         # Write interaction stuff
         f.write('\n### interactions \n'.encode('utf-8'))
         if ('pair_style' in parameters) and ('pair_coeff' in parameters):
             pair_style = parameters['pair_style']
-            f.write('pair_style {0} \n'.format(pair_style).encode('utf-8'))
+            f.write('pair_style\t {0} \n'.format(pair_style).encode('utf-8'))
             for pair_coeff in parameters['pair_coeff']:
-                f.write('pair_coeff {0} \n'
+                f.write('pair_coeff\t {0} \n'
                         ''.format(pair_coeff).encode('utf-8'))
             if 'mass' in parameters:
                 for mass in parameters['mass']:
-                    f.write('mass {0} \n'.format(mass).encode('utf-8'))
+                    f.write('mass\t\t {0} \n'.format(mass).encode('utf-8'))
         else:
             # simple default parameters
             # that should always make the LAMMPS calculation run
-            f.write('pair_style lj/cut 2.5 \n'
-                    'pair_coeff * * 1 1 \n'
-                    'mass * 1.0 \n'.encode('utf-8'))
+            f.write('pair_style\t lj/cut 2.5 \n'
+                    'pair_coeff\t * * 1 1 \n'
+                    'mass\t\t * 1.0 \n'.encode('utf-8'))
 
         if 'velocity' in parameters:
-            f.write(('\n'.join(['velocity {0}'.format(p)
+            f.write(('\n'.join(['velocity\t {0}'.format(p)
                                 for p in parameters['velocity']]) +
                      '\n').encode('utf-8'))
         
         if 'group' in parameters:
-            f.write(('\n'.join(['group {0}'.format(p)
+            f.write(('\n'.join(['group\t\t {0}'.format(p)
                                 for p in parameters['group']]) +
                      '\n').encode('utf-8'))
 
         f.write('\n### run\n'.encode('utf-8'))
 
         if 'fix' in parameters:
-            f.write(('\n'.join(['fix {0}'.format(p)
+            f.write(('\n'.join(['fix\t\t\t {0}'.format(p)
                                 for p in parameters['fix']]) +
                      '\n').encode('utf-8'))
         else:
-            f.write('fix fix_nve all nve\n'.encode('utf-8'))
+            f.write('fix\t\t\t fix_nve all nve\n'.encode('utf-8'))
 
         f.write(
-            'dump dump_all all custom {1} "{0}" id type x y z vx vy vz '
+            'dump\t\t dump_all all custom {1} "{0}" id type x y z vx vy vz '
             'fx fy fz\n'
             ''.format(lammps_trj, self.dump_period).encode('utf-8'))
         f.write('thermo_style custom {0}\n'
                 'thermo_modify flush yes\n'
-                'thermo 1\n'.format(
+                'thermo\t\t 1\n'.format(
                     ' '.join(self._custom_thermo_args)).encode('utf-8'))
 
         if 'timestep' in parameters:
-            f.write('timestep {0}\n'.format(
+            f.write('timestep\t {0}\n'.format(
                 parameters['timestep']).encode('utf-8'))
 
         if 'minimize' in parameters:
-            f.write('minimize {0}\n'.format(
+            f.write('minimize\t {0}\n'.format(
                 parameters['minimize']).encode('utf-8'))
             if 'min_style' in parameters:
-                f.write('min_style {0}\n'.format(
+                f.write('min_style\t {0}\n'.format(
                     parameters['min_style']).encode('utf-8'))
         if 'run' in parameters:
-            f.write('run {0}\n'.format(parameters['run']).encode('utf-8'))
+            f.write('run\t\t\t {0}\n'.format(parameters['run']).encode('utf-8'))
         if not (('minimize' in parameters) or ('run' in parameters)):
-            f.write('run 0\n'.encode('utf-8'))
+            f.write('run\t\t\t 0\n'.encode('utf-8'))
 
         f.write('print "{0}" \n'.format(CALCULATION_END_MARK).encode('utf-8'))
         # Force LAMMPS to flush log
