@@ -284,8 +284,7 @@ class LAMMPS:
         exitcode = lmp_handle.poll()
         if exitcode and exitcode != 0:
             cwd = os.getcwd()
-            raise RuntimeError('LAMMPS exited in {0} with exit code: {0}.'
-                               ''.format(cwd, exitcode))
+            raise RuntimeError('LAMMPS exited in {0} with exit code: {1}.'.format(cwd, exitcode))
 
         # A few sanity checks
         if len(self.thermo_content) == 0:
@@ -328,8 +327,8 @@ class LAMMPS:
 
         # Write variables
         f.write(('clear\n'
-                 'variable dump_file string "{0}"\n'
-                 'variable data_file string "{1}"\n'
+                 'variable\t dump_file string "{0}"\n'
+                 'variable\t data_file string "{1}"\n'
                  ).format(lammps_trj, lammps_data).encode('utf-8'))
 
         parameters = self.parameters
@@ -453,7 +452,7 @@ class LAMMPS:
             f.write('fix fix_nve all nve\n'.encode('utf-8'))
 
         f.write(
-            'dump dump_all all custom {1} {0} id type x y z vx vy vz '
+            'dump dump_all all custom {1} "{0}" id type x y z vx vy vz '
             'fx fy fz\n'
             ''.format(lammps_trj, self.dump_period).encode('utf-8'))
         f.write('thermo_style custom {0}\n'
@@ -491,7 +490,7 @@ class LAMMPS:
             lammps_log = self.label + '.log'
 
         if isinstance(lammps_log, basestring):
-            f = paropen(lammps_log, 'wb')
+            f = paropen(lammps_log, 'rb')
             close_log_file = True
         else:
             # Expect lammps_in to be a file-like object
