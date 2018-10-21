@@ -414,17 +414,42 @@ class LAMMPS:
         else:
             f.write('read_data\t {0}\n'.format(lammps_data).encode('utf-8'))
 
+        if 'replicate' in parameters:
+            f.write('\nreplicate\t {0}\n'.format(parameters['neigh_modify']).encode('utf-8'))
+
         # Write interaction stuff
         f.write('\n### interactions \n'.encode('utf-8'))
         if ('pair_style' in parameters) and ('pair_coeff' in parameters):
             pair_style = parameters['pair_style']
             f.write('pair_style\t {0} \n'.format(pair_style).encode('utf-8'))
+            if 'pair_modify' in parameters:
+                for pair_modify in parameters['pair_modify']:
+                    f.write('pair_modify\t {0} \n'   
+                            ''.format(pair_modify).encode('utf-8'))
+            if 'kspace_style ' in parameters:
+                f.write('kspace_style \t {0} \n'.format(parameters['kspace_style']).encode('utf-8'))
+
             for pair_coeff in parameters['pair_coeff']:
-                f.write('pair_coeff\t {0} \n'
+                f.write('pair_coeff\t {0} \n'   
                         ''.format(pair_coeff).encode('utf-8'))
-            if 'mass' in parameters:
-                for mass in parameters['mass']:
-                    f.write('mass\t\t {0} \n'.format(mass).encode('utf-8'))
+
+        if ('bond_style' in parameters) and ('bond_coeff' in parameters):
+            bond_style = parameters['bond_style']
+            f.write('bond_style\t {0} \n'.format(bond_style).encode('utf-8'))
+            for bond_coeff in parameters['bond_coeff']:
+                f.write('bond_coeff\t {0} \n'   
+                        ''.format(bond_coeff).encode('utf-8'))
+
+        if ('angle_style' in parameters) and ('angle_coeff' in parameters):
+            angle_style = parameters['angle_style']
+            f.write('angle_style\t {0} \n'.format(angle_style).encode('utf-8'))
+            for angle_coeff in parameters['angle_coeff']:
+                f.write('angle_coeff\t {0} \n'   
+                        ''.format(angle_coeff).encode('utf-8'))
+
+        if 'mass' in parameters:
+            for mass in parameters['mass']:
+                f.write('mass\t\t {0} \n'.format(mass).encode('utf-8'))
         else:
             # simple default parameters
             # that should always make the LAMMPS calculation run
