@@ -400,6 +400,9 @@ class LAMMPS:
 
             f.write('create_box\t {0} asecell\n'.format(
                 n_atom_types).encode('utf-8'))
+                
+            f.write('\n# By default, atom types in alphabetic order\n'.encode('utf-8'))
+
             for s, pos in zip(symbols, self.atoms.get_positions()):
                 if self.keep_tmp_files:
                     f.write('# atom pos in ase cell: {0:.16} {1:.16} {2:.16}'
