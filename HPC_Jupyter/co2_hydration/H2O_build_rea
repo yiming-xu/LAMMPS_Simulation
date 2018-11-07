@@ -1,0 +1,26 @@
+#PBS -lselect=1:ncpus=2:mpiprocs=2:mem=4gb
+#PBS -lwalltime=24:0:0
+
+# Load modules for any applications
+
+module load mpi
+module load lammps
+module load intel-suite/2017.6
+
+# Copy any input from the submission directory to the
+# fast temporary directory created for the job
+
+cp $PBS_O_WORKDIR/* .
+
+# Run program, using 'mpiexec' to start the job
+# mpiexec automatically picks up the # of cores
+# assigned to the job. No other flags are required
+#  - note: don't use 'mpirun'
+
+mpiexec lmp_mpi -in H2O_bulk_reaxff.in 
+
+# Copy any output back to a directory in $HOME
+
+mkdir $HOME/cx1_out/$PBS_JOBID
+cp * $HOME/cx1_out/$PBS_JOBID/
+

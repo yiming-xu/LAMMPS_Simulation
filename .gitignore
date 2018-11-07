@@ -2,3 +2,9 @@
 input/
 output/
 __pycache__/
+*.in
+*.traj
+*.log
+*.lammpstrj
+*.qin
+*.err
