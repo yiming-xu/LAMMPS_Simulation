@@ -39,7 +39,7 @@ Author:
     Yiming Xu, yiming.xu15@imperial.ac.uk
 """
 
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, run
 import time
 import os
 
@@ -91,9 +91,10 @@ class PBS_Submitter:
                     self.params[k] = [self.params[k]]*self.no_of_jobs
 
     def run(self):
+        "Iterates through and runs all the jobs."
         pbs_out = []
         pbs_err = []
-        "Iterates through and runs all the jobs."
+        
         for job_no in range(self.no_of_jobs):
         # Loop over your jobs
 
@@ -163,3 +164,33 @@ class PBS_Submitter:
             time.sleep(0.1)
 
         return pbs_out, pbs_err
+        
+    def qstat_monitor(self):
+        "Automatically runs qstat and monitors the output. Requires IPython"
+        try:
+            from IPython.display import clear_output
+        except ImportError:
+            print("Warning: clear_output will not work")
+
+        qstat_out_names = ['JobID', 'Job Name', 'User', 'Runtime', 'Status', 'Queue']
+
+        while True:
+            qstat_CP = run(["qstat"], stdout=PIPE)
+            qstat_out_utf8 = qstat_CP.stdout.splitlines()[2:]
+            qstat_out = [x.decode('utf-8') for x in qstat_out_utf8]
+
+            if qstat_out == 0:
+                break
+            
+            qstat_out_data = [x.split() for x in qstat_out]
+
+            try:
+                clear_output(wait=True)
+            except NameError:
+                pass
+
+            row_format ="{:>15}" * (len(qstat_out_names))
+            print(row_format.format(*qstat_out_names))
+
+            for row in qstat_out_data:
+                print(row_format.format(*row))
