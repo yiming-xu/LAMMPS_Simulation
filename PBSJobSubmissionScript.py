@@ -164,8 +164,8 @@ class PBS_Submitter:
             time.sleep(0.1)
 
         return pbs_out, pbs_err
-        
-def qstat_monitor():
+
+def qstat_monitor(update_frequency=5):
     "Automatically runs qstat and monitors the output. Requires IPython"
     try:
         from IPython.display import clear_output
@@ -193,11 +193,14 @@ def qstat_monitor():
             splitted_job = job.split()
             jobs[splitted_job[0]] = splitted_job[1:]
         
-        row_format ="{:>15}" * (len(qstat_out_names))
+        row_format ="{:>16}" * (len(qstat_out_names))
         print(row_format.format(*qstat_out_names))
 
-        for k, v in jobs:
+        for k, v in jobs.items():
             print(row_format.format(k, *v))
             
         if len(qstat_out_utf8) == 0:
             break
+            
+        time.sleep(max(update_frequency, 5))
+        print('Running...')
