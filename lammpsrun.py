@@ -200,7 +200,8 @@ class LAMMPS:
 
         # set LAMMPS command from environment variable
         if 'LAMMPS_COMMAND' in os.environ:
-            lammps_cmd_line = shlex.split(os.environ['LAMMPS_COMMAND'], posix=False)
+            lammps_cmd_line = shlex.split(os.environ['LAMMPS_COMMAND'], 
+                                          posix=(os.name == 'posix'))
             if len(lammps_cmd_line) == 0:
                 self.clean()
                 raise RuntimeError('The LAMMPS_COMMAND environment variable '
@@ -493,11 +494,17 @@ class LAMMPS:
                 parameters['timestep']).encode('utf-8'))
 
         if 'minimize' in parameters:
-            f.write('minimize\t {0}\n'.format(
-                parameters['minimize']).encode('utf-8'))
             if 'min_style' in parameters:
                 f.write('min_style\t {0}\n'.format(
                     parameters['min_style']).encode('utf-8'))
+            if 'min_modify' in parameters:
+                f.write('min_modify\t {0}\n'.format(
+                    parameters['min_modify']).encode('utf-8'))
+
+            f.write(('\n'.join(['minimize\t {0}'.format(p)
+                                for p in parameters['minimize']]) +
+                     '\n').encode('utf-8'))
+
         if 'run' in parameters:
             f.write('run\t\t\t {0}\n'.format(parameters['run']).encode('utf-8'))
         if not (('minimize' in parameters) or ('run' in parameters)):
