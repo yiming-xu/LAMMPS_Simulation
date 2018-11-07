@@ -165,32 +165,39 @@ class PBS_Submitter:
 
         return pbs_out, pbs_err
         
-    def qstat_monitor(self):
-        "Automatically runs qstat and monitors the output. Requires IPython"
+def qstat_monitor():
+    "Automatically runs qstat and monitors the output. Requires IPython"
+    try:
+        from IPython.display import clear_output
+    except ImportError:
+        print("Warning: clear_output will not work")
+    
+    jobs = dict()
+    qstat_out_names = ['JobID', 'Job Name', 'User', 'Runtime', 'Status', 'Queue']
+    
+    while True:
         try:
-            from IPython.display import clear_output
-        except ImportError:
-            print("Warning: clear_output will not work")
+            clear_output(wait=True)
+        except NameError:
+            pass
+        
+        # Set all to done
+        for k, v in jobs.items():
+            v[3] = "Done"
+    
+        qstat_CP = run(["qstat"], stdout=PIPE)
+        qstat_out_utf8 = qstat_CP.stdout.splitlines()[2:]
 
-        qstat_out_names = ['JobID', 'Job Name', 'User', 'Runtime', 'Status', 'Queue']
+        qstat_out = [x.decode('utf-8') for x in qstat_out_utf8]
+        for job in qstat_out:
+            splitted_job = job.split()
+            jobs[splitted_job[0]] = splitted_job[1:]
+        
+        row_format ="{:>15}" * (len(qstat_out_names))
+        print(row_format.format(*qstat_out_names))
 
-        while True:
-            qstat_CP = run(["qstat"], stdout=PIPE)
-            qstat_out_utf8 = qstat_CP.stdout.splitlines()[2:]
-            qstat_out = [x.decode('utf-8') for x in qstat_out_utf8]
-
-            if qstat_out == 0:
-                break
+        for k, v in jobs:
+            print(row_format.format(k, *v))
             
-            qstat_out_data = [x.split() for x in qstat_out]
-
-            try:
-                clear_output(wait=True)
-            except NameError:
-                pass
-
-            row_format ="{:>15}" * (len(qstat_out_names))
-            print(row_format.format(*qstat_out_names))
-
-            for row in qstat_out_data:
-                print(row_format.format(*row))
+        if len(qstat_out_utf8) == 0:
+            break
