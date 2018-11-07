@@ -70,12 +70,11 @@ class PBS_Submitter:
             self.no_of_jobs = 1
 
         self.additional_source_files = None
-        if "addition_source_files" in kwargs:
-
-            if type(kwargs["addition_source_files"]) == list:
-                self.additional_source_files = kwargs["addition_source_files"]
+        if "additional_source_files" in kwargs:
+            if type(kwargs["additional_source_files"]) == list:
+                self.additional_source_files = kwargs["additional_source_files"]
             else:
-                self.additional_source_files = [kwargs["addition_source_files"]]
+                self.additional_source_files = [kwargs["additional_source_files"]]
 
         # Parameters are checked for length of input. If length < no_of_jobs, they are duplicated
         # until that length as a list.
