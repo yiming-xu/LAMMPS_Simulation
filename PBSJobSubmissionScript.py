@@ -184,8 +184,9 @@ def qstat_monitor(update_frequency=5, jobs_list = None):
         
         if jobs_list:
             job_list_str = " ".join(jobs_list)
-            qstat_CP = run(["qstat -J {0}".format(job_list_str)], stdout=PIPE)
-        qstat_CP = run(["qstat"], stdout=PIPE)
+            qstat_CP = run(["qstat -J {0}".format(job_list_str)], stdout=PIPE, shell=True)
+        else:
+            qstat_CP = run(["qstat"], stdout=PIPE)
         qstat_out_utf8 = qstat_CP.stdout.splitlines()[2:]
 
         qstat_out = [x.decode('utf-8') for x in qstat_out_utf8]
