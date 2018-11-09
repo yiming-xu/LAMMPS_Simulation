@@ -5,7 +5,8 @@ MPI PBS cluster job submission script in Python.
 This script runs on a cluster VM, assumes that it can call pbs and runs over a list of jobs.
 
 Required parameters are:
-    job_names (list): the list of names of the jobs.
+    source_files (2D list/1D list): the list of files for a simulation
+    job_names (list): the list of names of the jobs
     modules (2D list/1D list): the list of modules that need to be loaded
     job_commands (2D list/1D list): the list of commands that is to be executed
 
@@ -50,10 +51,11 @@ class PBS_Submitter:
     home_path = r"/rds/general/user/yx6015/home/"
     ephemeral_path = r"/rds/general/user/yx6015/ephemeral/"
 
-    def __init__(self, job_names, job_commands, modules, walltime="1:00:00",
+    def __init__(self, source_files, job_names, job_commands, modules, walltime="1:00:00",
                  proc_nodes=1, proc_cpus=1, proc_mpiprocs=1, memory=1, **kwargs):
 
-        self.params = {'job_names': job_names,
+        self.params = {'source_files': source_files,
+                       'job_names': job_names,
                        'job_commands': job_commands,
                        'modules': modules,
                        'walltime': walltime,
@@ -69,19 +71,11 @@ class PBS_Submitter:
         else:
             self.no_of_jobs = 1
 
-        self.additional_source_files = None
-        if "additional_source_files" in kwargs:
-            if type(kwargs["additional_source_files"]) == list:
-                self.additional_source_files = kwargs["additional_source_files"]
-            else:
-                self.additional_source_files = [kwargs["additional_source_files"]]
-
         # Parameters are checked for length of input. If length < no_of_jobs, they are duplicated
         # until that length as a list.
         for k in self.params.keys():
-
             # Need to treat the ones that are intrinsically list differently
-            if k in ["modules", "job_commands"]:
+            if k in ["modules", "job_commands", "source_files"]:
                 # If it is not a 2D list of commands for all jobs (must be correct length and not identical)
                 if not (len(self.params[k]) == self.no_of_jobs and self.params[k][1:] != self.params[k][:-1]):
                     self.params[k] = [self.params[k]]*self.no_of_jobs
@@ -127,11 +121,12 @@ class PBS_Submitter:
             else:
                 proc.stdin.write("module load {0}\n".format(self.params['modules'][job_no]).encode('utf-8'))
 
-            # Copying input files from submission directory to temporary directory for job
-            proc.stdin.write("cp $PBS_O_WORKDIR/* . \n".encode('utf-8'))
-            if self.additional_source_files:
-                for src_file in self.additional_source_files:
-                    proc.stdin.write("cp {0} . \n".format(src_file).encode('utf-8'))
+            # Copying input files (*.in) from submission directory to temporary directory for job
+            if type(self.params['source_files'][job_no]) == list:
+                for source_file in self.params['source_files'][job_no]:
+                    proc.stdin.write("cp {0} . \n".format(source_file).encode('utf-8'))
+            else:
+                proc.stdin.write("cp {0} . \n".format(self.params['source_files'][job_no]).encode('utf-8'))
 
             # Starting job with mpiexec, it will pick up assigned cores automatically
             if type(self.params['job_commands'][job_no]) == list:
