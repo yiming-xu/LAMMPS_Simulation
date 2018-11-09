@@ -5,12 +5,14 @@ MPI PBS cluster job submission script in Python.
 This script runs on a cluster VM, assumes that it can call pbs and runs over a list of jobs.
 
 Required parameters are:
-    source_files (2D list/1D list): the list of files for a simulation
+    
     job_names (list): the list of names of the jobs
     modules (2D list/1D list): the list of modules that need to be loaded
     job_commands (2D list/1D list): the list of commands that is to be executed
 
 Optional parameters are:
+    source_files (2D list/1D list): the list of files for a simulation
+        Default to "$PBS_O_WORKDIR/*", which is the job submission directory
     walltime (list/string): the walltime time of the programme to be run in
         hh:mm:ss format.
         Default to 4:00:00
@@ -51,7 +53,7 @@ class PBS_Submitter:
     home_path = r"/rds/general/user/yx6015/home/"
     ephemeral_path = r"/rds/general/user/yx6015/ephemeral/"
 
-    def __init__(self, source_files, job_names, job_commands, modules, walltime="1:00:00",
+    def __init__(self, job_names, job_commands, modules, source_files="$PBS_O_WORKDIR/*", walltime="1:00:00",
                  proc_nodes=1, proc_cpus=1, proc_mpiprocs=1, memory=1, **kwargs):
 
         self.params = {'source_files': source_files,
@@ -197,5 +199,6 @@ def qstat_monitor(update_frequency=5):
         if len(qstat_out_utf8) == 0:
             break
             
-        time.sleep(max(update_frequency, 5))
+        time.sleep(max(update_frequency/2, 5/2))
         print('Running...')
+        time.sleep(max(update_frequency/2, 5/2))
