@@ -182,6 +182,9 @@ def qstat_monitor(update_frequency=5, jobs_list = None):
         for k, v in jobs.items():
             v[3] = "Done"
         
+        if jobs_list:
+            job_list_str = " ".join(jobs_list)
+            qstat_CP = run(["qstat -J {0}".format(job_list_str)], stdout=PIPE)
         qstat_CP = run(["qstat"], stdout=PIPE)
         qstat_out_utf8 = qstat_CP.stdout.splitlines()[2:]
 
@@ -194,8 +197,7 @@ def qstat_monitor(update_frequency=5, jobs_list = None):
         print(row_format.format(*qstat_out_names))
 
         for k, v in jobs.items():
-            if k in jobs_list:
-                print(row_format.format(k, *v))
+            print(row_format.format(k, *v))
             
         if len(qstat_out_utf8) == 0:
             break
