@@ -162,7 +162,7 @@ class PBS_Submitter:
 
         return pbs_out, pbs_err
 
-def qstat_monitor(update_frequency=5):
+def qstat_monitor(update_frequency=5, jobs_list = None):
     "Automatically runs qstat and monitors the output. Requires IPython"
     try:
         from IPython.display import clear_output
@@ -181,7 +181,7 @@ def qstat_monitor(update_frequency=5):
         # Set all to done
         for k, v in jobs.items():
             v[3] = "Done"
-    
+        
         qstat_CP = run(["qstat"], stdout=PIPE)
         qstat_out_utf8 = qstat_CP.stdout.splitlines()[2:]
 
@@ -194,7 +194,8 @@ def qstat_monitor(update_frequency=5):
         print(row_format.format(*qstat_out_names))
 
         for k, v in jobs.items():
-            print(row_format.format(k, *v))
+            if k in jobs_list:
+                print(row_format.format(k, *v))
             
         if len(qstat_out_utf8) == 0:
             break
