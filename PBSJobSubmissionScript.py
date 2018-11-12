@@ -5,11 +5,14 @@ MPI PBS cluster job submission script in Python.
 This script runs on a cluster VM, assumes that it can call pbs and runs over a list of jobs.
 
 Required parameters are:
-    job_names (list): the list of names of the jobs.
+    
+    job_names (list): the list of names of the jobs
     modules (2D list/1D list): the list of modules that need to be loaded
     job_commands (2D list/1D list): the list of commands that is to be executed
 
 Optional parameters are:
+    source_files (2D list/1D list): the list of files for a simulation
+        Default to "$PBS_O_WORKDIR/*", which is the job submission directory
     walltime (list/string): the walltime time of the programme to be run in
         hh:mm:ss format.
         Default to 4:00:00
@@ -39,7 +42,7 @@ Author:
     Yiming Xu, yiming.xu15@imperial.ac.uk
 """
 
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, run
 import time
 import os
 
@@ -50,10 +53,11 @@ class PBS_Submitter:
     home_path = r"/rds/general/user/yx6015/home/"
     ephemeral_path = r"/rds/general/user/yx6015/ephemeral/"
 
-    def __init__(self, job_names, job_commands, modules, walltime="1:00:00",
+    def __init__(self, job_names, job_commands, modules, source_files="$PBS_O_WORKDIR/*", walltime="1:00:00",
                  proc_nodes=1, proc_cpus=1, proc_mpiprocs=1, memory=1, **kwargs):
 
-        self.params = {'job_names': job_names,
+        self.params = {'source_files': source_files,
+                       'job_names': job_names,
                        'job_commands': job_commands,
                        'modules': modules,
                        'walltime': walltime,
@@ -69,20 +73,11 @@ class PBS_Submitter:
         else:
             self.no_of_jobs = 1
 
-        self.additional_source_files = None
-        if "addition_source_files" in kwargs:
-
-            if type(kwargs["addition_source_files"]) == list:
-                self.additional_source_files = kwargs["addition_source_files"]
-            else:
-                self.additional_source_files = [kwargs["addition_source_files"]]
-
         # Parameters are checked for length of input. If length < no_of_jobs, they are duplicated
         # until that length as a list.
         for k in self.params.keys():
-
             # Need to treat the ones that are intrinsically list differently
-            if k in ["modules", "job_commands"]:
+            if k in ["modules", "job_commands", "source_files"]:
                 # If it is not a 2D list of commands for all jobs (must be correct length and not identical)
                 if not (len(self.params[k]) == self.no_of_jobs and self.params[k][1:] != self.params[k][:-1]):
                     self.params[k] = [self.params[k]]*self.no_of_jobs
@@ -92,9 +87,10 @@ class PBS_Submitter:
                     self.params[k] = [self.params[k]]*self.no_of_jobs
 
     def run(self):
+        "Iterates through and runs all the jobs."
         pbs_out = []
         pbs_err = []
-        "Iterates through and runs all the jobs."
+        
         for job_no in range(self.no_of_jobs):
         # Loop over your jobs
 
@@ -127,11 +123,12 @@ class PBS_Submitter:
             else:
                 proc.stdin.write("module load {0}\n".format(self.params['modules'][job_no]).encode('utf-8'))
 
-            # Copying input files from submission directory to temporary directory for job
-            proc.stdin.write("cp $PBS_O_WORKDIR/* . \n".encode('utf-8'))
-            if self.additional_source_files:
-                for src_file in self.additional_source_files:
-                    proc.stdin.write("cp {0} . \n".format(src_file).encode('utf-8'))
+            # Copying input files (*.in) from submission directory to temporary directory for job
+            if type(self.params['source_files'][job_no]) == list:
+                for source_file in self.params['source_files'][job_no]:
+                    proc.stdin.write("cp {0} . \n".format(source_file).encode('utf-8'))
+            else:
+                proc.stdin.write("cp {0} . \n".format(self.params['source_files'][job_no]).encode('utf-8'))
 
             # Starting job with mpiexec, it will pick up assigned cores automatically
             if type(self.params['job_commands'][job_no]) == list:
@@ -164,3 +161,44 @@ class PBS_Submitter:
             time.sleep(0.1)
 
         return pbs_out, pbs_err
+
+def qstat_monitor(update_frequency=5):
+    "Automatically runs qstat and monitors the output. Requires IPython"
+    try:
+        from IPython.display import clear_output
+    except ImportError:
+        print("Warning: clear_output will not work")
+    
+    jobs = dict()
+    qstat_out_names = ['JobID', 'Job Name', 'User', 'Runtime', 'Status', 'Queue']
+    
+    while True:
+        try:
+            clear_output(wait=True)
+        except NameError:
+            pass
+        
+        # Set all to done
+        for k, v in jobs.items():
+            v[3] = "Done"
+    
+        qstat_CP = run(["qstat"], stdout=PIPE)
+        qstat_out_utf8 = qstat_CP.stdout.splitlines()[2:]
+
+        qstat_out = [x.decode('utf-8') for x in qstat_out_utf8]
+        for job in qstat_out:
+            splitted_job = job.split()
+            jobs[splitted_job[0]] = splitted_job[1:]
+        
+        row_format ="{:>16}" * (len(qstat_out_names))
+        print(row_format.format(*qstat_out_names))
+
+        for k, v in jobs.items():
+            print(row_format.format(k, *v))
+            
+        if len(qstat_out_utf8) == 0:
+            break
+            
+        time.sleep(max(update_frequency/2, 5/2))
+        print('Running...')
+        time.sleep(max(update_frequency/2, 5/2))
