@@ -86,6 +86,8 @@ class PBS_Submitter:
                 if type(self.params[k]) != list:
                     self.params[k] = [self.params[k]]*self.no_of_jobs
 
+        self.other_args = kwargs
+
     def run(self):
         "Iterates through and runs all the jobs."
         pbs_out = []
@@ -142,7 +144,7 @@ class PBS_Submitter:
                 "mkdir $HOME/cx1_out/$PBS_JOBID \n".encode('utf-8'))
             proc.stdin.write(
                 "cp * $HOME/cx1_out/$PBS_JOBID/ \n".encode('utf-8'))
-
+                
             # Print your job and the system response to the screen as it's submitted
             out, err = proc.communicate()
             proc.kill()
@@ -162,7 +164,7 @@ class PBS_Submitter:
 
         return pbs_out, pbs_err
 
-def qstat_monitor(update_frequency=5):
+def qstat_monitor(update_frequency=5, jobs_list = None):
     "Automatically runs qstat and monitors the output. Requires IPython"
     try:
         from IPython.display import clear_output
@@ -181,8 +183,12 @@ def qstat_monitor(update_frequency=5):
         # Set all to done
         for k, v in jobs.items():
             v[3] = "Done"
-    
-        qstat_CP = run(["qstat"], stdout=PIPE)
+        
+        if jobs_list:
+            job_list_str = " ".join(jobs_list)
+            qstat_CP = run(["qstat -J {0}".format(job_list_str)], stdout=PIPE, shell=True)
+        else:
+            qstat_CP = run(["qstat"], stdout=PIPE)
         qstat_out_utf8 = qstat_CP.stdout.splitlines()[2:]
 
         qstat_out = [x.decode('utf-8') for x in qstat_out_utf8]
