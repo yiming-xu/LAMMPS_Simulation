@@ -45,7 +45,7 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write=False, **kwarg
         if key in kwargs.keys():
             reaxff_params[key] = kwargs[key]
 
-    write_lammps_data(job_name + ".lammpsdata", sim_box)
+    write_lammps_data(input_fd + job_name + ".lammpsdata", sim_box)
     calc = LAMMPS(parameters=reaxff_params, always_triclinic=True)
     sim_box.set_calculator(calc)
     if write:
