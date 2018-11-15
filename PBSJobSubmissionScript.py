@@ -86,6 +86,8 @@ class PBS_Submitter:
                 if type(self.params[k]) != list:
                     self.params[k] = [self.params[k]]*self.no_of_jobs
 
+        self.other_args = kwargs
+
     def run(self):
         "Iterates through and runs all the jobs."
         pbs_out = []
@@ -142,7 +144,7 @@ class PBS_Submitter:
                 "mkdir $HOME/cx1_out/$PBS_JOBID \n".encode('utf-8'))
             proc.stdin.write(
                 "cp * $HOME/cx1_out/$PBS_JOBID/ \n".encode('utf-8'))
-
+                
             # Print your job and the system response to the screen as it's submitted
             out, err = proc.communicate()
             proc.kill()

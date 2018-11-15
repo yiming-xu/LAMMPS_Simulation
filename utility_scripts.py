@@ -9,6 +9,47 @@ from numpy.random import rand
 from ase.data import *
 from ase.neighborlist import neighbor_list
 
+def reaxff_params_generator(sim_box, job_name, write = False, **kwargs):
+
+    list_of_elements = sorted(list(set(sim_box.get_chemical_symbols())))
+
+    if 'potential' in kwargs.keys():
+        potential = kwargs['potential']
+    else:
+        potential = 'ffield.reax.Fe_O_C_H_combined'
+    
+    # Default Parameters
+    reaxff_params = {
+        # Initialization
+        "units": "real",
+        "atom_style": "charge",
+        "velocity": ["all create 300.0 1050027 rot yes dist gaussian"],
+
+        # Forcefield definition
+        "pair_style": "reax/c NULL safezone 16",
+        "pair_coeff": ['* * ' + '{0} '.format(potential) + ' '.join(list_of_elements)],
+        "neighbor": "2.0 bin",
+        "neighbor_modify": "delay 10 check yes",
+
+        # Run and Minimization
+        "run": "1",
+        "timestep": 1,
+        "fix": ["all_nve all nve",
+                "qeqreax all qeq/reax 1 0.0 10.0 1e-6 reax/c"]
+    }
+    
+    for key in reaxff_params.keys():
+        if key in kwargs.keys():
+            reaxff_params[key] = kwargs[key]
+    
+    write_lammps_data(x + ".lammpsdata")
+    calc = LAMMPS(parameters=reaxff_params, always_triclinic=True)
+    sim_box.set_calculator(calc)
+    if write:
+        calc.write_lammps_in(lammps_in=sim_path+"{0}.lammpsin".format(job_name),
+                             lammps_trj="{0}.lammpstrj".format(job_name),
+                             lammps_data="{0}.lammpsdata".format(job_name))
+                             
 def identify_connection(i, j, num, connections = None):
     'Given a neighbor_list i, j, identifies all indices connected to num'
     if not connections:
