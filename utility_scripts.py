@@ -5,7 +5,7 @@
 import numpy as np
 from ase import Atoms, units
 from ase.build import molecule
-from ase.data import *
+from ase.data import vdw_radii, atomic_numbers, covalent_radii
 from ase.neighborlist import neighbor_list
 from numpy.random import rand
 
@@ -45,7 +45,7 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write=False, **kwarg
         if key in kwargs.keys():
             reaxff_params[key] = kwargs[key]
 
-    write_lammps_data(input_fd + job_name + ".lammpsdata", sim_box)
+    write_lammps_data(input_fd + job_name + ".lammpsdata", sim_box, charges=True)
     calc = LAMMPS(parameters=reaxff_params, always_triclinic=True)
     sim_box.set_calculator(calc)
     if write:

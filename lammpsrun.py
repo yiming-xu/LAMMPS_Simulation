@@ -229,7 +229,7 @@ class LAMMPS:
         # change into subdirectory for LAMMPS calculations
         cwd = os.getcwd()
         os.chdir(self.tmp_dir)
-    
+
         # setup file names for LAMMPS calculation
         label = '{0}{1:>06}'.format(self.label, self.calls)
         lammps_in = uns_mktemp(prefix='in_' + label, dir=self.tmp_dir)
@@ -890,7 +890,7 @@ class Prism(object):
 
 
 def write_lammps_data(fileobj, atoms, specorder=None, force_skew=False,
-                      prismobj=None, velocities=False):
+                      prismobj=None, velocities=False, charges=False):
     """Write atomic structure data to a LAMMPS data_file."""
     if isinstance(fileobj, basestring):
         f = paropen(fileobj, 'wb')
@@ -940,10 +940,19 @@ def write_lammps_data(fileobj, atoms, specorder=None, force_skew=False,
     f.write('Masses \n\n'.encode('utf-8'))
     for s in species:
         i = species.index(s) + 1
-        f.write('{0:>2d} {1:>.4f}\n'.format(i, atomic_masses[atomic_numbers[s]]).encode('utf-8'))
+        f.write('{0:>2d} {1:>.4f}\n'.format(
+            i, atomic_masses[atomic_numbers[s]]).encode('utf-8'))
     f.write('\n'.encode('utf-8'))
 
     f.write('Atoms \n\n'.encode('utf-8'))
+
+    # Temporary support for adding a charge
+    if charges:
+        for i, (r, q) in enumerate(zip(p.positions_to_lammps_strs(atoms.get_positions()), atoms.get_initial_charges())):
+            s = species.index(symbols[i]) + 1
+            f.write('{0:>6} {1:>3} {5:>10.6f} {2:>14} {3:>14} {4:>14}\n'.format(
+                    *(i + 1, s) + tuple(r), q).encode('utf-8'))
+
     for i, r in enumerate(p.positions_to_lammps_strs(atoms.get_positions())):
         s = species.index(symbols[i]) + 1
         f.write('{0:>6} {1:>3} {2:>14} {3:>14} {4:>14}\n'.format(
