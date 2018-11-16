@@ -152,7 +152,7 @@ class PBS_Submitter:
             proc.kill()
 
             out = out.decode('utf-8').split()
-            if type(out) == list:
+            if type(out) == list and len(out) > 0:
                 pbs_out.append(out[0])
             else:
                 pbs_out.append(None)
@@ -166,7 +166,7 @@ class PBS_Submitter:
 
         return pbs_out, pbs_err
 
-def qstat_monitor(update_frequency=5, jobs_list = None):
+def qstat_monitor(jobs_list = None, update_frequency=5):
     "Automatically runs qstat and monitors the output. Requires IPython"
     try:
         from IPython.display import clear_output
