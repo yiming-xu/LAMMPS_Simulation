@@ -467,12 +467,6 @@ class LAMMPS:
         if 'mass' in parameters:
             for mass in parameters['mass']:
                 f.write('mass\t\t {0} \n'.format(mass).encode('utf-8'))
-        else:
-            # simple default parameters
-            # that should always make the LAMMPS calculation run
-            f.write('pair_style\t lj/cut 2.5 \n'
-                    'pair_coeff\t * * 1 1 \n'
-                    'mass\t\t * 1.0 \n'.encode('utf-8'))
 
         if 'velocity' in parameters:
             f.write(('\n'.join(['velocity\t {0}'.format(p)
@@ -952,11 +946,11 @@ def write_lammps_data(fileobj, atoms, specorder=None, force_skew=False,
             s = species.index(symbols[i]) + 1
             f.write('{0:>6} {1:>3} {5:>10.6f} {2:>14} {3:>14} {4:>14}\n'.format(
                     *(i + 1, s) + tuple(r), q).encode('utf-8'))
-
-    for i, r in enumerate(p.positions_to_lammps_strs(atoms.get_positions())):
-        s = species.index(symbols[i]) + 1
-        f.write('{0:>6} {1:>3} {2:>14} {3:>14} {4:>14}\n'.format(
-                *(i + 1, s) + tuple(r)).encode('utf-8'))
+    else:
+        for i, r in enumerate(p.positions_to_lammps_strs(atoms.get_positions())):
+            s = species.index(symbols[i]) + 1
+            f.write('{0:>6} {1:>3} {2:>14} {3:>14} {4:>14}\n'.format(
+                    *(i + 1, s) + tuple(r)).encode('utf-8'))
 
     if velocities and atoms.get_velocities() is not None:
         f.write('\n\nVelocities \n\n'.encode('utf-8'))
