@@ -54,7 +54,7 @@ class PBS_Submitter:
     ephemeral_path = r"/rds/general/user/yx6015/ephemeral/"
 
     def __init__(self, job_names, job_commands, modules, source_files="$PBS_O_WORKDIR/*", walltime="1:00:00",
-                 proc_nodes=1, proc_cpus=1, proc_mpiprocs=1, memory=1, **kwargs):
+                 proc_nodes=1, proc_cpus=1, proc_mpiprocs=1, proc_threads=1, memory=1, **kwargs):
 
         self.params = {'source_files': source_files,
                        'job_names': job_names,
@@ -64,6 +64,7 @@ class PBS_Submitter:
                        'proc_nodes': proc_nodes,
                        'proc_cpus': proc_cpus,
                        'proc_mpiprocs': proc_mpiprocs,
+                       'proc_threads': proc_threads,
                        'memory': memory}
 
         self.params['job_names'] = job_names
@@ -109,10 +110,11 @@ class PBS_Submitter:
             proc.stdin.write(
                 "#PBS -e {0}.err\n".format(self.params['job_names'][job_no]).encode('utf-8'))
 
-            proc.stdin.write("#PBS -l select={0}:ncpus={1}:mpiprocs={2}:mem={3}gb\n"
+            proc.stdin.write("#PBS -l select={0}:ncpus={1}:mpiprocs={2}:ompthreads={3}:mem={4}gb\n"
                              .format(self.params['proc_nodes'][job_no], 
                                      self.params['proc_cpus'][job_no], 
-                                     self.params['proc_mpiprocs'][job_no], 
+                                     self.params['proc_mpiprocs'][job_no],
+                                     self.params['proc_threads'][job_no], 
                                      self.params['memory'][job_no])
                              .encode('utf-8'))
             proc.stdin.write(
