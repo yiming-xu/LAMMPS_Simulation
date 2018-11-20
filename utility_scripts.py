@@ -45,7 +45,8 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write=False, **kwarg
         if key in kwargs.keys():
             reaxff_params[key] = kwargs[key]
 
-    write_lammps_data(input_fd + job_name + ".lammpsdata", sim_box, charges=True)
+    write_lammps_data(input_fd + job_name + ".lammpsdata",
+                      sim_box, charges=True)
     calc = LAMMPS(parameters=reaxff_params, always_triclinic=True)
     sim_box.set_calculator(calc)
     if write:
@@ -54,6 +55,15 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write=False, **kwarg
                              lammps_data="{0}.lammpsdata".format(job_name))
 
     return calc
+
+
+def get_coordination_number(sim_box, coordination_indices, cut_off=1.0, vdw_cut_off=1.0, cov_cut_off=1.0):
+    i, j = nl_cutoff_cov_vdw(sim_box, cut_off, vdw_cut_off, cov_cut_off)
+
+    indices, coord = np.unique(i, return_counts=True)
+    coord_numbers = dict(zip(indices, coord))
+    return [coord_numbers[x] for x in coordination_indices]
+
 
 def identify_connection(i, j, num, connections=None):
     'Given a neighbor_list i, j, identifies all indices connected to num'
@@ -69,16 +79,19 @@ def identify_connection(i, j, num, connections=None):
 
     return connections
 
-def nl_cutoff_cov_vdw(sim_box, cut_off):
+
+def nl_cutoff_cov_vdw(sim_box, cut_off, vdw_cut_off=1.0, cov_cut_off=1.0):
     overlap_vdwr_sphere = [vdw_radii[atomic_numbers[x]]
                            for x in sim_box.get_chemical_symbols()]
     overlap_covr_sphere = [covalent_radii[atomic_numbers[x]]
                            for x in sim_box.get_chemical_symbols()]
     overlap_sphere = cut_off * \
-        (np.array(overlap_vdwr_sphere)+np.array(overlap_covr_sphere))/2
+        (vdw_cut_off * np.array(overlap_vdwr_sphere) +
+         cov_cut_off * np.array(overlap_covr_sphere))/2
 
     i, j = neighbor_list('ij', sim_box, overlap_sphere, self_interaction=False)
     return i, j
+
 
 def replace_molecule(sim_box, source_index, new_mol, cut_off=1.0, seed=None):
     'Replaces a molecule attached to an atom at source_index of the sim_box and replace it by new_mol'
