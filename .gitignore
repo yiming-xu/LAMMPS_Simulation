@@ -2,9 +2,8 @@
 input/
 output/
 __pycache__/
-*.in
+*.lammps*
 *.traj
 *.log
-*.lammpstrj
-*.qin
 *.err
+*.bundle
