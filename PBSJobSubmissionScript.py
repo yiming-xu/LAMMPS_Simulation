@@ -80,13 +80,12 @@ class PBS_Submitter:
             # Need to treat the ones that are intrinsically list differently
             if k in ["modules", "job_commands", "source_files"]:
                 # If it is not a 2D list of commands for all jobs (must be correct length and not identical)
-                if not (len(self.params[k]) == self.no_of_jobs and self.params[k][1:] != self.params[k][:-1]):
+                if not (len(self.params[k]) == self.no_of_jobs and (self.params[k][1:] != self.params[k][:-1] or len(self.params[k]) == 1)):
                     self.params[k] = [self.params[k]]*self.no_of_jobs
 
             else:
                 if type(self.params[k]) != list:
                     self.params[k] = [self.params[k]]*self.no_of_jobs
-
         self.other_args = kwargs
 
     def run(self):
@@ -143,9 +142,9 @@ class PBS_Submitter:
 
             # Copy output back to directory in $HOME
             proc.stdin.write(
-                "mkdir $HOME/cx1_out/$PBS_JOBID \n".encode('utf-8'))
+                "mkdir $EPHEMERAL/$PBS_JOBID \n".encode('utf-8'))
             proc.stdin.write(
-                "cp * $HOME/cx1_out/$PBS_JOBID/ \n".encode('utf-8'))
+                "cp * $EPHEMERAL/$PBS_JOBID/ \n".encode('utf-8'))
                 
             # Print your job and the system response to the screen as it's submitted
             out, err = proc.communicate()
