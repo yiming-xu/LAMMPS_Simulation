@@ -35,18 +35,17 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write=False, **kwarg
         "neighbor_modify": "delay 10 check yes",
 
         # Run and Minimization
-        "run": "1",
+        #"run": "1",
         "timestep": 1,
         "fix": ["all_nve all nve",
                 "qeqreax all qeq/reax 1 0.0 10.0 1e-6 reax/c"]
     }
 
-    for key in reaxff_params.keys():
-        if key in kwargs.keys():
-            reaxff_params[key] = kwargs[key]
+    for key in kwargs.keys():
+        reaxff_params[key] = kwargs[key]
 
     write_lammps_data(input_fd + job_name + ".lammpsdata",
-                      sim_box, charges=True)
+                      sim_box, charges=True, force_skew=True)
     calc = LAMMPS(parameters=reaxff_params, always_triclinic=True)
     sim_box.set_calculator(calc)
     if write:
