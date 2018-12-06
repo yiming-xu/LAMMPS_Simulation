@@ -8,6 +8,7 @@ from ase.build import molecule
 from ase.data import vdw_radii, atomic_numbers, covalent_radii
 from ase.neighborlist import neighbor_list
 from numpy.random import rand
+import os
 
 from lammpsrun import LAMMPS, write_lammps_data
 
@@ -26,7 +27,7 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write=False, **kwarg
         # Initialization
         "units": "real",
         "atom_style": "charge",
-        "velocity": ["all create 300.0 1050027 rot yes dist gaussian"],
+        #"velocity": ["all create 300.0 1050027 rot yes dist gaussian"],
 
         # Forcefield definition
         "pair_style": "reax/c NULL safezone 16",
@@ -43,13 +44,13 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write=False, **kwarg
 
     for key in kwargs.keys():
         reaxff_params[key] = kwargs[key]
-
-    write_lammps_data(input_fd + job_name + ".lammpsdata",
+    
+    write_lammps_data(os.path.join(input_fd, job_name + ".lammpsdata",),
                       sim_box, charges=True, force_skew=True)
     calc = LAMMPS(parameters=reaxff_params, always_triclinic=True)
     sim_box.set_calculator(calc)
     if write:
-        calc.write_lammps_in(lammps_in=input_fd+"{0}.lammpsin".format(job_name),
+        calc.write_lammps_in(lammps_in=os.path.join(input_fd, "{0}.lammpsin".format(job_name)) ,
                              lammps_trj="{0}.lammpstrj".format(job_name),
                              lammps_data="{0}.lammpsdata".format(job_name))
 
