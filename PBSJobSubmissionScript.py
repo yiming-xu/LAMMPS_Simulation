@@ -186,11 +186,14 @@ def qstat_monitor(jobs_list = None, update_frequency=5):
             v[3] = "Done"
         
         if jobs_list:
-            job_list_str = " ".join(jobs_list)
-            qstat_CP = run(["qstat -J {0}".format(job_list_str)], stdout=PIPE, shell=True)
+            qstat_out_utf8 = []
+            for job in jobs_list:
+                time.sleep(0.1)
+                qstat_CP = run(["qstat {0}".format(job)], stdout=PIPE, shell=True)
+                qstat_out_utf8.append(qstat_CP.stdout.splitlines()[2:])
         else:
             qstat_CP = run(["qstat"], stdout=PIPE)
-        qstat_out_utf8 = qstat_CP.stdout.splitlines()[2:]
+            qstat_out_utf8 = qstat_CP.stdout.splitlines()[2:]
 
         qstat_out = [x.decode('utf-8') for x in qstat_out_utf8]
         for job in qstat_out:
