@@ -457,20 +457,20 @@ def write_gulp(data, species_filter=None):
         for k, v in zip(data["species"]['idx'], data["species"]['symbol'])
     }
     spec_df = data["species"]
-    spec_df['idxs'] = zip(spec_df['idx'])
+    spec_df['idxs'] = list(zip(spec_df['idx']))
     bond_df = data["bonds"]
-    bond_df['idxs'] = zip(bond_df['idx1'], bond_df['idx2'])
+    bond_df['idxs'] = list(zip(bond_df['idx1'], bond_df['idx2']))
     od_df = data["off-diagonals"]
-    od_df['idxs'] = zip(od_df['idx1'], od_df['idx2'])
+    od_df['idxs'] = list(zip(od_df['idx1'], od_df['idx2']))
     hbond_df = data["hbonds"]
-    hbond_df['idxs'] = zip(hbond_df['idx2'], hbond_df['idx1'],
-                           hbond_df['idx3'])
+    hbond_df['idxs'] = list(zip(hbond_df['idx2'], hbond_df['idx1'],
+                           hbond_df['idx3']))
     angle_df = data["angles"]
-    angle_df['idxs'] = zip(angle_df['idx2'], angle_df['idx1'],
-                           angle_df['idx3'])
+    angle_df['idxs'] = list(zip(angle_df['idx2'], angle_df['idx1'],
+                           angle_df['idx3']))
     torsion_df = data["torsions"]
-    torsion_df['idxs'] = zip(torsion_df['idx1'], torsion_df['idx2'],
-                             torsion_df['idx3'], torsion_df['idx4'])
+    torsion_df['idxs'] = list(zip(torsion_df['idx1'], torsion_df['idx2'],
+                             torsion_df['idx3'], torsion_df['idx4']))
 
     # If reaxff2_bo3 = 1 needs to be set to 0 for GULP since this is a dummy value
     def gulp_conv1(val):
@@ -668,7 +668,7 @@ def _create_attr_dicts(*dicts):
         outdicts.append([
             AttrDict({k: v[i]
                       for k, v in dct.items()})
-            for i in range(len(list(dct['idxs'])))
+            for i in range(len(dct['idxs']))
         ])
     return outdicts
 
