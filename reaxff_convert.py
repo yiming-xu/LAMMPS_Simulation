@@ -7,10 +7,10 @@
 ##################################################
 # Author: Christopher Sewell
 # Copyright: Copyright 2018, aiida-gulp
-## Credits: [Christopher Sewell]
-## License: MIT License
-## Version: {major}.{minor}.{rel}
-## Maintainer: Christopher Sewell
+# Credits: [Christopher Sewell]
+# License: MIT License
+# Version: {major}.{minor}.{rel}
+# Maintainer: Christopher Sewell
 ## Email: chrisj_sewell@hotmail.com
 ## Status: {dev_status}
 ##################################################
@@ -402,7 +402,7 @@ def write_lammps(data):
 
     for od in od_data:
         outstr += '{:2} {:2} '.format(od[0],
-                                  od[1]) + regex(6).format(*od[2:8]) + '\n'
+                                      od[1]) + regex(6).format(*od[2:8]) + '\n'
 
     outstr += '{0} ! Nr of angles;at1;at2;at3;Thetao,o;ka;kb;pv1;pv2\n'.format(
         len(data["angles"][_anglekeys[0]]))
@@ -464,13 +464,13 @@ def write_gulp(data, species_filter=None):
     od_df['idxs'] = list(zip(od_df['idx1'], od_df['idx2']))
     hbond_df = data["hbonds"]
     hbond_df['idxs'] = list(zip(hbond_df['idx2'], hbond_df['idx1'],
-                           hbond_df['idx3']))
+                                hbond_df['idx3']))
     angle_df = data["angles"]
     angle_df['idxs'] = list(zip(angle_df['idx2'], angle_df['idx1'],
-                           angle_df['idx3']))
+                                angle_df['idx3']))
     torsion_df = data["torsions"]
     torsion_df['idxs'] = list(zip(torsion_df['idx1'], torsion_df['idx2'],
-                             torsion_df['idx3'], torsion_df['idx4']))
+                                  torsion_df['idx3'], torsion_df['idx4']))
 
     # If reaxff2_bo3 = 1 needs to be set to 0 for GULP since this is a dummy value
     def gulp_conv1(val):
@@ -681,15 +681,22 @@ def _get_write_data_func(id_sym_dict, species_filter):
             conditions = []
         datastr = ""
         lines = []
-        for s in df:
 
+        for s in df:
+            scope = locals()
             evals = [True for c in conditions if eval(
-                c)]  # pylint: disable=eval-used
+                c, scope)]  # pylint: disable=eval-used
             if not len(evals) == len(conditions):
                 continue
 
             try:
-                symbols = [id_sym_dict[idx] for idx in s.idxs]
+                symbols = []
+                for idx in s.idxs:
+                    if idx == 0:
+                        symbols.append('X')
+                    else:
+                        symbols.append(id_sym_dict[idx])
+                
             except KeyError:
                 raise Exception(
                     'ERROR: Species number out of bounds when getting {}'.
