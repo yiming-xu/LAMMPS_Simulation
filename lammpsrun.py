@@ -23,21 +23,24 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 # USA or see <http://www.gnu.org/licenses/>.
 
-import os
-import shutil
-import shlex
-from subprocess import Popen, PIPE
-from threading import Thread
-from re import compile as re_compile, IGNORECASE
-from tempfile import mkdtemp, NamedTemporaryFile, mktemp as uns_mktemp
-import numpy as np
 import decimal as dec
-from ase import Atoms
-from ase.parallel import paropen
-from ase.units import GPa, Ang, fs
-from ase.data import atomic_numbers, atomic_names, atomic_masses, covalent_radii, vdw_radii
-from ase.utils import basestring
+import os
+import shlex
+import shutil
+from re import IGNORECASE
+from re import compile as re_compile
+from subprocess import PIPE, Popen
+from tempfile import NamedTemporaryFile, mkdtemp
+from tempfile import mktemp as uns_mktemp
+from threading import Thread
 
+import numpy as np
+from ase import Atoms
+from ase.data import (atomic_masses, atomic_names, atomic_numbers,
+                      covalent_radii, vdw_radii)
+from ase.parallel import paropen
+from ase.units import Ang, GPa, fs
+from ase.utils import basestring
 
 __all__ = ['LAMMPS', 'write_lammps_data']
 
