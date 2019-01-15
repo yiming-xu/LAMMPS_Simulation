@@ -2,15 +2,70 @@
 #   Yiming Xu, yiming.xu15@imperial.ac.uk
 #
 # This is a list of scripts that are somewhat useful
+import os
+
 import numpy as np
 from ase import Atoms, units
 from ase.build import molecule
-from ase.data import vdw_radii, atomic_numbers, covalent_radii
+from ase.data import atomic_numbers, covalent_radii, vdw_radii
 from ase.neighborlist import neighbor_list
+from ase.visualize.plot import plot_atoms
+from matplotlib import animation
 from numpy.random import rand
-import os
 
 from lammpsrun import LAMMPS, write_lammps_data
+
+def read_gulp_trajectory(traj_file_list):
+    trajectory = []
+    for step in traj_file_list:
+        cell = []
+        position_str = []
+        with open(step) as f:
+            while True:
+                line = f.readline()
+                if not line:
+                    break
+                # as the output is well structured, and we need
+                # only the structure information
+                if line.startswith("species"):
+                    break
+
+                if line.startswith("cell"):
+                    pos_line = f.readline()
+                    pos_line = pos_line.split()
+                    cell = [float(x) for x in pos_line]
+
+                elif line.startswith('fractional'):
+                    coord_line = f.readline()
+                    while "core" in coord_line.lower() or "shel" in coord_line.lower():
+                        position_str.append(coord_line.split())
+                        coord_line = f.readline()
+
+        # convert information to ASE atoms and append to trajectory
+        atomic_symbols = [x[0] for x in position_str]
+        positions = [[float(x) for x in y[2:5]] for y in position_str]
+        ase_atoms = Atoms(atomic_symbols, cell = cell)
+        ase_atoms.set_scaled_positions(positions)
+        trajectory.append(ase_atoms)
+    return trajectory
+
+def rotate_plot_atoms(atoms, radii=1.0, rotation_list=None, interval=40):
+
+    if rotation_list is None:
+        rotation_list = ['90x, {}y, 0z'.format(x) for x in range(360)]
+
+    def update_plot_atoms(num):
+        cur_rotation = rotation_list[num]
+        ax.cla()
+        ax.set_axis_off()
+        plot_atoms(atoms, ax=ax, radii=radii, rotation=cur_rotation)
+        return ax,
+
+    fig, ax = plt.subplots()
+    ax.set_axis_off()
+    ani = animation.FuncAnimation(fig, update_plot_atoms, len(rotation_list),
+                                  interval=40, blit=False, repeat=True)
+    return ani
 
 
 def reaxff_params_generator(sim_box, job_name, input_fd="", write=False, **kwargs):
@@ -27,7 +82,7 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write=False, **kwarg
         # Initialization
         "units": "real",
         "atom_style": "charge",
-        #"velocity": ["all create 300.0 1050027 rot yes dist gaussian"],
+        # "velocity": ["all create 300.0 1050027 rot yes dist gaussian"],
 
         # Forcefield definition
         "pair_style": "reax/c NULL safezone 16",
@@ -36,7 +91,7 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write=False, **kwarg
         "neighbor_modify": "delay 10 check yes",
 
         # Run and Minimization
-        #"run": "1",
+        # "run": "1",
         "timestep": 1,
         "fix": ["all_nve all nve",
                 "qeqreax all qeq/reax 1 0.0 10.0 1e-6 reax/c"]
@@ -44,13 +99,13 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write=False, **kwarg
 
     for key in kwargs.keys():
         reaxff_params[key] = kwargs[key]
-    
+
     write_lammps_data(os.path.join(input_fd, job_name + ".lammpsdata",),
                       sim_box, charges=True, force_skew=True)
     calc = LAMMPS(parameters=reaxff_params, always_triclinic=True)
     sim_box.set_calculator(calc)
     if write:
-        calc.write_lammps_in(lammps_in=os.path.join(input_fd, "{0}.lammpsin".format(job_name)) ,
+        calc.write_lammps_in(lammps_in=os.path.join(input_fd, "{0}.lammpsin".format(job_name)),
                              lammps_trj="{0}.lammpstrj".format(job_name),
                              lammps_data="{0}.lammpsdata".format(job_name))
 
