@@ -4,18 +4,38 @@
 # This is a list of scripts that are somewhat useful
 import os
 
+import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import animation
+from numpy.random import rand
+
 from ase import Atoms, units
 from ase.build import molecule
 from ase.data import atomic_numbers, covalent_radii, vdw_radii
 from ase.neighborlist import neighbor_list
 from ase.visualize.plot import plot_atoms
-from matplotlib import animation
-from numpy.random import rand
-
 from lammpsrun import LAMMPS, write_lammps_data
 
+
+def read_float_or_fraction(number: str) -> float:
+    # This is needed because sometimes GULP coordinates are printed in fractions
+    if number.isdecimal():
+        return float(number)
+    else:
+        split_by_dot = number.split('.')
+        split_by_slash = number.split('/')
+        if len(split_by_dot) == 2 and split_by_dot[0].isdecimal() and split_by_dot[1].isdecimal:
+            return float(number)
+        elif len(split_by_slash) == 2 and split_by_slash[0].isdecimal() and split_by_slash[1].isdecimal:
+            return float(split_by_slash[0])/float(split_by_slash[1])
+        else:
+            raise ValueError
+
+
 def read_gulp_trajectory(traj_file_list):
+    """Reads a list of GULP opti trajectory files, and extracts the starting
+    geometry and coordinate information into a list of ASE atoms."""
+
     trajectory = []
     for step in traj_file_list:
         cell = []
@@ -25,29 +45,33 @@ def read_gulp_trajectory(traj_file_list):
                 line = f.readline()
                 if not line:
                     break
-                # as the output is well structured, and we need
-                # only the structure information
-                if line.startswith("species"):
+                # As the output is well structured, and we need only the structure information.
+                # However, the end of coordinates is not well defined, so this is used instead.
+                # More stopping criteria can be added.
+                if line.startswith("species") or line.startswith("reaxFFtol"):
                     break
 
                 if line.startswith("cell"):
                     pos_line = f.readline()
                     pos_line = pos_line.split()
-                    cell = [float(x) for x in pos_line]
+                    cell = [read_float_or_fraction(x) for x in pos_line]
 
-                elif line.startswith('fractional'):
+                elif line.startswith('frac'):
                     coord_line = f.readline()
-                    while "core" in coord_line.lower() or "shel" in coord_line.lower():
+                    # Trying to ensure that only relevant lines are read.
+                    while "core" in coord_line.lower() or "shel" in coord_line.lower() or "bshe" in coord_line.lower():
                         position_str.append(coord_line.split())
                         coord_line = f.readline()
 
         # convert information to ASE atoms and append to trajectory
         atomic_symbols = [x[0] for x in position_str]
-        positions = [[float(x) for x in y[2:5]] for y in position_str]
-        ase_atoms = Atoms(atomic_symbols, cell = cell)
+        positions = [[read_float_or_fraction(x)
+                      for x in y[2:5]] for y in position_str]
+        ase_atoms = Atoms(atomic_symbols, cell=cell, pbc=True)
         ase_atoms.set_scaled_positions(positions)
         trajectory.append(ase_atoms)
     return trajectory
+
 
 def rotate_plot_atoms(atoms, radii=1.0, rotation_list=None, interval=40):
 
