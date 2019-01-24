@@ -1,10 +1,10 @@
-# gulp.py customised for the MgO TE labs
 """This module defines an ASE interface to GULP.
 
 Written by:
 
 Andy Cuko <andi.cuko@upmc.fr>
 Antoni Macia <tonimacia@gmail.com>
+Yiming Xu <yiming.xu15@imperial.ac.uk>
 
 EXPORT ASE_GULP_COMMAND="/path/to/gulp < PREFIX.gin > PREFIX.got"
 
@@ -87,15 +87,15 @@ class GULP(FileIOCalculator):
         FileIOCalculator.write_input(self, atoms, properties, system_changes)
         p = self.parameters
 
-        # Create a primitive cell for calculating symmetry
+        # Create a pymatgen struct for writing symmetrical structures
+        # Wrting only assymetric sites for sanity and suppressing GULP warnings
         if p.symmetry:
-            assert self.atoms.info['unit_cell'] == 'conventional'
-            sg = self.atoms.info['spacegroup']
-
-            from ase.build import cut
-            prim_cell = sg.scaled_primitive_cell
-            prim_atoms = cut(
-                self.atoms, a=prim_cell[0], b=prim_cell[1], c=prim_cell[2])
+            from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+            from pymatgen.io.ase import AseAtomsAdaptor
+            struct = AseAtomsAdaptor.get_structure(self.atoms)
+            struct_sg = SpacegroupAnalyzer(struct)
+            struct_symm = struct_sg.get_symmetrized_structure()
+            struct_assym_sites = [i[0] for i in struct_symm.equivalent_sites]
 
         # Build string to hold .gin input file:
         s = p.keywords
@@ -103,11 +103,11 @@ class GULP(FileIOCalculator):
 
         if all(self.atoms.pbc):
             if p.symmetry:
-                coords = prim_atoms.get_scaled_positions()
-                cell_params = prim_atoms.get_cell_lengths_and_angles()
+                coords = np.array([i.frac_coords for i in struct_assym_sites])
             else:
                 coords = self.atoms.get_scaled_positions()
-                cell_params = self.atoms.get_cell_lengths_and_angles()
+
+            cell_params = self.atoms.get_cell_lengths_and_angles()
 
             s += 'cell\n{0} {1} {2} {3} {4} {5}\n'.format(
                 *(np.around(cell_params, 5)))
@@ -119,7 +119,7 @@ class GULP(FileIOCalculator):
             self.atom_types = c.get_atom_types()
         else:
             if p.symmetry:
-                labels = prim_atoms.get_chemical_symbols()
+                labels = [i.species_string for i in struct_assym_sites]
             else:
                 labels = self.atoms.get_chemical_symbols()
 
@@ -128,7 +128,7 @@ class GULP(FileIOCalculator):
             s += ' {0:2} core'.format(symbol)
 
             def print_xyz(xyz) -> str:
-                # so we need to convert coords to fraction notation for precision purposes.
+                # so we need to convert coords to fraction notation for precision
                 from fractions import Fraction
 
                 xyz_string = ''
@@ -141,7 +141,7 @@ class GULP(FileIOCalculator):
                         new_frac = Fraction(i).limit_denominator(50)
                         # ensuring a very small difference in actual value
                         # note default symprec=1e-05
-                        if abs(new_frac.numerator/new_frac.denominator - i)/i < 1e-6:
+                        if abs(float(new_frac) - i)/i < 1e-6:
                             xyz_string += '       {}'.format(new_frac)
                         else:
                             xyz_string += '  {:8}'.format(np.around(i, 5))
@@ -219,6 +219,60 @@ class GULP(FileIOCalculator):
                 self.atoms.set_positions(positions)
 
         self.steps = cycles
+
+    def read_trajectory(self, traj_file_list):
+        from ase.io.trajectory import Trajectory
+        from ase import Atoms
+        from ase.spacegroup import crystal
+        from fractions import Fraction
+        """Reads a list of GULP opti trajectory files, and extracts the starting
+        geometry and coordinate information into a list of ASE atoms."""
+
+        trajectory = []
+        for step in traj_file_list:
+            cell = []
+            position_str = []
+            with open(step) as f:
+                while True:
+                    line = f.readline()
+                    if not line:
+                        break
+                    # As the output is well structured, and we need only the structure information.
+                    # However, the end of coordinates is not well defined, so this is used instead.
+                    # More stopping criteria can be added.
+                    if line.startswith("species") or line.startswith("reaxFFtol"):
+                        break
+
+                    if line.startswith("cell"):
+                        pos_line = f.readline()
+                        pos_line = pos_line.split()
+                        cell = [float(Fraction(x)) for x in pos_line]
+
+                    elif line.startswith('frac'):
+                        coord_line = f.readline()
+                        # Trying to ensure that only relevant lines are read.
+                        while "core" in coord_line.lower() or "shel" in coord_line.lower() or "bshe" in coord_line.lower():
+                            position_str.append(coord_line.split())
+                            coord_line = f.readline()
+
+            # convert information to ASE atoms and append to trajectory
+            atomic_symbols = [x[0] for x in position_str]
+            positions = [[float(Fraction(x))
+                          for x in y[2:5]] for y in position_str]
+
+            # running with symmetry constraints only output assymetric information for cells
+            if self.parameters.symmetry:
+                ase_atoms = crystal(symbols=atomic_symbols,
+                                    basis=positions,
+                                    spacegroup=self.atoms.info['spacegroup'].no,
+                                    cellpar=cell,
+                                    primitive_cell=self.atoms.info['unit_cell'] == 'primitive')
+            else:
+                ase_atoms = Atoms(atomic_symbols, cell=cell, pbc=True)
+                ase_atoms.set_scaled_positions(positions)
+
+            trajectory.append(ase_atoms)
+        return trajectory
 
     def get_opt_state(self):
         return self.optimized

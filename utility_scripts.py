@@ -8,69 +8,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import animation
 from numpy.random import rand
+from fractions import Fraction
 
 from ase import Atoms, units
 from ase.build import molecule
 from ase.data import atomic_numbers, covalent_radii, vdw_radii
 from ase.neighborlist import neighbor_list
 from ase.visualize.plot import plot_atoms
-from lammpsrun import LAMMPS, write_lammps_data
-
-
-def read_float_or_fraction(number: str) -> float:
-    # This is needed because sometimes GULP coordinates are printed in fractions
-    if number.isdecimal():
-        return float(number)
-    else:
-        split_by_dot = number.split('.')
-        split_by_slash = number.split('/')
-        if len(split_by_dot) == 2 and split_by_dot[0].isdecimal() and split_by_dot[1].isdecimal:
-            return float(number)
-        elif len(split_by_slash) == 2 and split_by_slash[0].isdecimal() and split_by_slash[1].isdecimal:
-            return float(split_by_slash[0])/float(split_by_slash[1])
-        else:
-            raise ValueError
-
-
-def read_gulp_trajectory(traj_file_list):
-    """Reads a list of GULP opti trajectory files, and extracts the starting
-    geometry and coordinate information into a list of ASE atoms."""
-
-    trajectory = []
-    for step in traj_file_list:
-        cell = []
-        position_str = []
-        with open(step) as f:
-            while True:
-                line = f.readline()
-                if not line:
-                    break
-                # As the output is well structured, and we need only the structure information.
-                # However, the end of coordinates is not well defined, so this is used instead.
-                # More stopping criteria can be added.
-                if line.startswith("species") or line.startswith("reaxFFtol"):
-                    break
-
-                if line.startswith("cell"):
-                    pos_line = f.readline()
-                    pos_line = pos_line.split()
-                    cell = [read_float_or_fraction(x) for x in pos_line]
-
-                elif line.startswith('frac'):
-                    coord_line = f.readline()
-                    # Trying to ensure that only relevant lines are read.
-                    while "core" in coord_line.lower() or "shel" in coord_line.lower() or "bshe" in coord_line.lower():
-                        position_str.append(coord_line.split())
-                        coord_line = f.readline()
-
-        # convert information to ASE atoms and append to trajectory
-        atomic_symbols = [x[0] for x in position_str]
-        positions = [[read_float_or_fraction(x)
-                      for x in y[2:5]] for y in position_str]
-        ase_atoms = Atoms(atomic_symbols, cell=cell, pbc=True)
-        ase_atoms.set_scaled_positions(positions)
-        trajectory.append(ase_atoms)
-    return trajectory
 
 
 def rotate_plot_atoms(atoms, radii=1.0, rotation_list=None, interval=40):
@@ -93,6 +37,7 @@ def rotate_plot_atoms(atoms, radii=1.0, rotation_list=None, interval=40):
 
 
 def reaxff_params_generator(sim_box, job_name, input_fd="", write=False, **kwargs):
+    from lammpsrun import LAMMPS, write_lammps_data
 
     list_of_elements = sorted(list(set(sim_box.get_chemical_symbols())))
 
@@ -136,20 +81,40 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write=False, **kwarg
     return calc
 
 
-def get_coordination_number(sim_box, coordination_indices, cut_off=1.0, vdw_cut_off=1.0, cov_cut_off=1.0):
-    i, j = nl_cutoff_cov_vdw(sim_box, cut_off, vdw_cut_off, cov_cut_off)
+def get_coordination_number(sim_box, atom_index, cut_off=1.0, vdw_cut_off=1.0, cov_cut_off=1.0):
+    """Returns the coordination number of atoms of index *atom_index*
+    in *sim_box*.
 
+    This function makes use of ASE's vdw radius and covalent radius data, and
+    accepts individual cut-offs of such radius. These are then passed to the neighbor
+    list function to get the neighbour list.
+
+    Parameters:
+
+    atoms: Atoms instance
+        This should correspond to a repeatable unit cell.
+    sim_box: Atoms | list of Atoms
+    atom_index: list
+    cut_off: float
+    vdw_cut_off: float
+    cov_cut_off: float
+    """
+
+    # pylint: disable=unused-variable
+    i, j = nl_cutoff_cov_vdw(
+        sim_box, cut_off, vdw_cut_off, cov_cut_off)
+    # pylint: enable=unused-variable
     indices, coord = np.unique(i, return_counts=True)
     coord_numbers = dict(zip(indices, coord))
-    return [coord_numbers[x] for x in coordination_indices]
+    return [coord_numbers[x] for x in atom_index]
 
 
-def identify_connection(i, j, num, connections=None):
-    'Given a neighbor_list i, j, identifies all indices connected to num'
+def identify_connection(i, j, atom_index, connections=None):
+    """Given a neighbor_list i, j, identifies all indices connected to atom_index"""
     if not connections:
-        connections = [num]
+        connections = [atom_index]
 
-    new_connections = j[i == num]
+    new_connections = j[i == atom_index]
     to_check = [x for x in new_connections if x not in connections]
     connections.extend(to_check)
 
@@ -160,13 +125,17 @@ def identify_connection(i, j, num, connections=None):
 
 
 def nl_cutoff_cov_vdw(sim_box, cut_off, vdw_cut_off=1.0, cov_cut_off=1.0):
-    overlap_vdwr_sphere = [vdw_radii[atomic_numbers[x]]
-                           for x in sim_box.get_chemical_symbols()]
-    overlap_covr_sphere = [covalent_radii[atomic_numbers[x]]
-                           for x in sim_box.get_chemical_symbols()]
+    overlap_vdwr_sphere = np.array([vdw_radii[atomic_numbers[x]]
+                                    for x in sim_box.get_chemical_symbols()])
+    overlap_covr_sphere = np.array([covalent_radii[atomic_numbers[x]]
+                                    for x in sim_box.get_chemical_symbols()])
     overlap_sphere = cut_off * \
-        (vdw_cut_off * np.array(overlap_vdwr_sphere) +
-         cov_cut_off * np.array(overlap_covr_sphere))/2
+        (vdw_cut_off * overlap_vdwr_sphere +
+         cov_cut_off * overlap_covr_sphere)/2
+
+    # for atoms without vdwr
+    overlap_sphere[np.isnan(overlap_vdwr_sphere)
+                   ] = cut_off * cov_cut_off * overlap_covr_sphere[np.isnan(overlap_vdwr_sphere)]
 
     i, j = neighbor_list('ij', sim_box, overlap_sphere, self_interaction=False)
     return i, j
@@ -179,7 +148,7 @@ def replace_molecule(sim_box, source_index, new_mol, cut_off=1.0, seed=None):
 
     i, j = nl_cutoff_cov_vdw(new_box, cut_off)
 
-    mol_to_delete_indices = identify_connection(i, j, num=source_index)
+    mol_to_delete_indices = identify_connection(i, j, atom_index=source_index)
     mol_to_delete_COM = new_box[mol_to_delete_indices].get_center_of_mass()
 
     new_mol.translate(mol_to_delete_COM)
