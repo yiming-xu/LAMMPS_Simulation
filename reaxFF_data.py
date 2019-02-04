@@ -15,6 +15,7 @@
 # Status:
 ##################################################
 import pandas as pd
+from warnings import warn
 from itertools import product, combinations_with_replacement, combinations
 
 
@@ -39,7 +40,7 @@ class reaxFF_data:
                  'reaxff1_over3', 'dummy4', 'dummy5', 'reaxff1_over4', 'reaxff1_angle1', 'dummy11',
                  'reaxff1_valence2', 'reaxff1_angle2', 'dummy6', 'dummy7', 'dummy8']
 
-    _bondkeys = ['reaxff2_bond1', 'reaxff2_bond2', 'reaxff2_bond3', 'reaxff2_bond4','reaxff2_bo5',
+    _bondkeys = ['reaxff2_bond1', 'reaxff2_bond2', 'reaxff2_bond3', 'reaxff2_bond4', 'reaxff2_bo5',
                  'reaxff2_bo7', 'reaxff2_bo6', 'reaxff2_over', 'reaxff2_bond5', 'reaxff2_bo3',
                  'reaxff2_bo4', 'dummy1', 'reaxff2_bo1', 'reaxff2_bo2', 'reaxff2_bo8', 'reaxff2_bo9']
 
@@ -55,9 +56,11 @@ class reaxFF_data:
     _hbkeys = ['reaxff3_hbond1', 'reaxff3_hbond2',
                'reaxff3_hbond3', 'reaxff3_hbond4']
 
-    def __init__(self, species=None):
+    def __init__(self, species=None, params=None):
         self.species = species
-        if species:
+        self.params = params
+
+        if not params and species:
             self.params = self._gen_empty_params()
 
     def __repr__(self):
@@ -70,7 +73,11 @@ class reaxFF_data:
             outstr += '\n'
         return outstr
 
-    def read_lammps(self, file_name):
+    def __copy__(self):
+        """Returns a deep copy of itself."""
+        return reaxFF_data(species=self.species.copy(), params=self.params.copy(deep=True))
+
+    def read_lammps(self, file_name, drop_new_species=True):
         # Reads into self.params data from a standard LAMMPS reaxFF input file
         def _read_general_parameters(rf):
             n_params = int(rf.readline().split()[0])
@@ -99,15 +106,23 @@ class reaxFF_data:
 
                 current_atom = params[0]
 
+                if drop_new_species and current_atom not in self.species:
+                    continue
+
                 # Check for placeholder atom
                 if current_atom == 'X':
                     self.params['species']['X'] = None
                     species2id['X'] = 0
                 else:
+                    if current_atom not in self.species:
+                        warn('{} is not found in initilizing species. Added anyway.'.format(
+                            current_atom))
+
                     species2id[current_atom] = atom_no
 
                 if 'X' not in species2id.keys():
                     species2id['X'] = 0
+
                 self.params['species'].loc[current_atom] = [
                     float(x) for x in params[1:]]
 
@@ -128,6 +143,9 @@ class reaxFF_data:
                 current_ids = [int(x) for x in params[0:number_atoms]]
                 current_atoms = [species2id.inverse[x][0] for x in current_ids]
 
+                if drop_new_species and any(x not in self.species for x in current_atoms):
+                    continue
+
                 if 'X' in current_atoms:
                     self.params[connectivity].loc['-'.join(current_atoms)] = [
                         float(x) for x in params[number_atoms:]]
@@ -138,7 +156,10 @@ class reaxFF_data:
                     self.params[connectivity].loc['-'.join(reversed(current_atoms))] = [
                         float(x) for x in params[number_atoms:]]
                 else:
-                    raise Exception('This should never happen.')
+                    warn('One of the atoms in ' + '-'.join(current_atoms) +
+                         ' is not found in initilizing species. Added anyway.')
+                    self.params[connectivity].loc['-'.join(current_atoms)] = [
+                        float(x) for x in params[number_atoms:]]
 
         with open(file_name) as rf:
             self.params['description'] = rf.readline()
