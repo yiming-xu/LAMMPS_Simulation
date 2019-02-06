@@ -21,68 +21,68 @@ from itertools import product, combinations_with_replacement, combinations
 
 class reaxFF_data:
     # Courtesy of Christopher Sewell, aiida-gulp
-    _paramkeys = ['Overcoordination 1', 'Overcoordination 2', 'Valency angle conjugation 1',
-                  'Triple bond stabilisation 1', 'Triple bond stabilisation 2', 'C2-correction',
-                  'Undercoordination 1', 'Triple bond stabilisation', 'Undercoordination 2',
-                  'Undercoordination 3', 'Triple bond stabilization energy', 'Lower Taper-radius',
-                  'Upper Taper-radius', 'Not used 1', 'Valency undercoordination', 'Valency angle/lone pair',
-                  'Valency angle 1', 'Valency angle 2', 'Not used 2', 'Double bond/angle',
-                  'Double bond/angle: overcoord 1', 'Double bond/angle: overcoord 2', 'Not used 3',
-                  'Torsion/BO', 'Torsion overcoordination 1', 'Torsion overcoordination 2', 'Not used 4',
-                  'Conjugation', 'vdWaals shielding', 'bond order cutoff', 'Valency angle conjugation 2',
-                  'Valency overcoordination 1', 'Valency overcoordination 2', 'Valency/lone pair',
-                  'Not used 5', 'Not used 6', 'Not used 7', 'Not used 8', 'Valency angle conjugation 3']
+    _paramkeys_gulp = ['Overcoordination 1', 'Overcoordination 2', 'Valency angle conjugation 1',
+                       'Triple bond stabilisation 1', 'Triple bond stabilisation 2', 'C2-correction',
+                       'Undercoordination 1', 'Triple bond stabilisation', 'Undercoordination 2',
+                       'Undercoordination 3', 'Triple bond stabilization energy', 'Lower Taper-radius',
+                       'Upper Taper-radius', 'Not used 1', 'Valency undercoordination', 'Valency angle/lone pair',
+                       'Valency angle 1', 'Valency angle 2', 'Not used 2', 'Double bond/angle',
+                       'Double bond/angle: overcoord 1', 'Double bond/angle: overcoord 2', 'Not used 3',
+                       'Torsion/BO', 'Torsion overcoordination 1', 'Torsion overcoordination 2', 'Not used 4',
+                       'Conjugation', 'vdWaals shielding', 'bond order cutoff', 'Valency angle conjugation 2',
+                       'Valency overcoordination 1', 'Valency overcoordination 2', 'Valency/lone pair',
+                       'Not used 5', 'Not used 6', 'Not used 7', 'Not used 8', 'Valency angle conjugation 3']
 
-    _paramkeys_lammps = ["Overcoordination parameter", "Overcoordination parameter", "Valency angle conjugation parameter",
-                         "Triple bond stabilisation parameter", "Triple bond stabilisation parameter", "C2-correction",
-                         "Undercoordination parameter", "Triple bond stabilisation parameter", "Undercoordination parameter",
-                         "Undercoordination parameter", "Triple bond stabilization energy", "Lower Taper-radius", "Upper Taper-radius",
-                         "Not used", "Valency undercoordination", "Valency angle/lone pair parameter", "Valency angle",
-                         "Valency angle parameter", "Not used", "Double bond/angle parameter", "Double bond/angle parameter: overcoord",
-                         "Double bond/angle parameter: overcoord", "Not used", "Torsion/BO parameter", "Torsion overcoordination",
-                         "Torsion overcoordination", "Conjugation 0 (not used)", "Conjugation", "vdWaals shielding",
-                         "Cutoff for bond order (*100)", "Valency angle conjugation parameter", "Overcoordination parameter",
-                         "Overcoordination parameter", "Valency/lone pair parameter", "Not used", "Not used", "Molecular energy (not used)",
-                         "Molecular energy (not used)", "Valency angle conjugation parameter"]
+    _paramkeys = ['Overcoordination parameter', 'Overcoordination parameter', 'Valency angle conjugation parameter',
+                  'Triple bond stabilisation parameter', 'Triple bond stabilisation parameter', 'C2-correction',
+                  'Undercoordination parameter', 'Triple bond stabilisation parameter', 'Undercoordination parameter',
+                  'Undercoordination parameter', 'Triple bond stabilization energy', 'Lower Taper-radius', 'Upper Taper-radius',
+                  'Not used', 'Valency undercoordination', 'Valency angle/lone pair parameter', 'Valency angle',
+                  'Valency angle parameter', 'Not used', 'Double bond/angle parameter', 'Double bond/angle parameter: overcoord',
+                  'Double bond/angle parameter: overcoord', 'Not used', 'Torsion/BO parameter', 'Torsion overcoordination',
+                  'Torsion overcoordination', 'Conjugation 0 (not used)', 'Conjugation', 'vdWaals shielding',
+                  'Cutoff for bond order (*100)', 'Valency angle conjugation parameter', 'Overcoordination parameter',
+                  'Overcoordination parameter', 'Valency/lone pair parameter', 'Not used', 'Not used', 'Molecular energy (not used)',
+                  'Molecular energy (not used)', 'Valency angle conjugation parameter']
 
-    _speckeys = ['reaxff1_radii1', 'reaxff1_valence1', 'mass', 'reaxff1_morse3', 'reaxff1_morse2',
-                 'reaxff_gamma', 'reaxff1_radii2', 'reaxff1_valence3', 'reaxff1_morse1', 'reaxff1_morse4',
-                 'reaxff1_valence4', 'reaxff1_under', 'dummy1', 'reaxff_chi', 'reaxff_mu', 'dummy2',
-                 'reaxff1_radii3', 'reaxff1_lonepair2', 'dummy3', 'reaxff1_over2', 'reaxff1_over1',
-                 'reaxff1_over3', 'dummy4', 'dummy5', 'reaxff1_over4', 'reaxff1_angle1', 'dummy11',
-                 'reaxff1_valence2', 'reaxff1_angle2', 'dummy6', 'dummy7', 'dummy8']
+    _speckeys_gulp = ['reaxff1_radii1', 'reaxff1_valence1', 'mass', 'reaxff1_morse3', 'reaxff1_morse2',
+                      'reaxff_gamma', 'reaxff1_radii2', 'reaxff1_valence3', 'reaxff1_morse1', 'reaxff1_morse4',
+                      'reaxff1_valence4', 'reaxff1_under', 'dummy1', 'reaxff_chi', 'reaxff_mu', 'dummy2',
+                      'reaxff1_radii3', 'reaxff1_lonepair2', 'dummy3', 'reaxff1_over2', 'reaxff1_over1',
+                      'reaxff1_over3', 'dummy4', 'dummy5', 'reaxff1_over4', 'reaxff1_angle1', 'dummy11',
+                      'reaxff1_valence2', 'reaxff1_angle2', 'dummy6', 'dummy7', 'dummy8']
 
-    _speckeys_lammps = ["cov.r", "valency", "a.m", "Rvdw", "Evdw", "gammaEEM", "cov.r2", "#el", "alfa",
-                        "gammavdW", "valency", "Eunder", "n.u.", "chiEEM", "etaEEM", "n.u.", "cov.r3", "Elp",
-                        "Heat inc.", "13BO1", "13BO2", "13BO3", "n.u.", "n.u.", "ov/un", "val1", "n.u.", "val3",
-                        "vval4", "n.u.", "n.u.", "n.u."]
+    _speckeys = ['cov.r', 'valency', 'a.m', 'Rvdw', 'Evdw', 'gammaEEM', 'cov.r2', '#el', 'alfa',
+                 'gammavdW', 'valency', 'Eunder', 'n.u.', 'chiEEM', 'etaEEM', 'n.u.', 'cov.r3', 'Elp',
+                 'Heat inc.', '13BO1', '13BO2', '13BO3', 'n.u.', 'n.u.', 'ov/un', 'val1', 'n.u.', 'val3',
+                 'vval4', 'n.u.', 'n.u.', 'n.u.']
 
-    _bondkeys = ['reaxff2_bond1', 'reaxff2_bond2', 'reaxff2_bond3', 'reaxff2_bond4', 'reaxff2_bo5',
-                 'reaxff2_bo7', 'reaxff2_bo6', 'reaxff2_over', 'reaxff2_bond5', 'reaxff2_bo3',
-                 'reaxff2_bo4', 'dummy1', 'reaxff2_bo1', 'reaxff2_bo2', 'reaxff2_bo8', 'reaxff2_bo9']
+    _bondkeys_gulp = ['reaxff2_bond1', 'reaxff2_bond2', 'reaxff2_bond3', 'reaxff2_bond4', 'reaxff2_bo5',
+                      'reaxff2_bo7', 'reaxff2_bo6', 'reaxff2_over', 'reaxff2_bond5', 'reaxff2_bo3',
+                      'reaxff2_bo4', 'dummy1', 'reaxff2_bo1', 'reaxff2_bo2', 'reaxff2_bo8', 'reaxff2_bo9']
 
-    _bondkeys_lammps = ["Edis1", "LPpen", "n.u.", "pbe1", "pbo5", "13corr", "pbo6", "kov",
-                        "pbe2", "pbo3", "pbo4", "Etrip", "pbo1", "pbo2", "ovcorr", "n.u."]
+    _bondkeys = ['Edis1', 'LPpen', 'n.u.', 'pbe1', 'pbo5', '13corr', 'pbo6', 'kov',
+                 'pbe2', 'pbo3', 'pbo4', 'Etrip', 'pbo1', 'pbo2', 'ovcorr', 'n.u.']
 
-    _odkeys = ['reaxff2_morse1', 'reaxff2_morse3', 'reaxff2_morse2',
-               'reaxff2_morse4', 'reaxff2_morse5', 'reaxff2_morse6']
+    _odkeys_gulp = ['reaxff2_morse1', 'reaxff2_morse3', 'reaxff2_morse2',
+                    'reaxff2_morse4', 'reaxff2_morse5', 'reaxff2_morse6']
 
-    _odkeys_lammps = ["Ediss", "Ro", "gamma", "rsigma", "rpi", "rpi2 "]
+    _odkeys = ['Ediss', 'Ro', 'gamma', 'rsigma', 'rpi', 'rpi2 ']
 
-    _anglekeys = ['reaxff3_angle1', 'reaxff3_angle2', 'reaxff3_angle3',
-                  'reaxff3_conj', 'reaxff3_angle5', 'reaxff3_penalty', 'reaxff3_angle4']
+    _anglekeys_gulp = ['reaxff3_angle1', 'reaxff3_angle2', 'reaxff3_angle3',
+                       'reaxff3_conj', 'reaxff3_angle5', 'reaxff3_penalty', 'reaxff3_angle4']
 
-    _angleskeys_lammps = ["Theta,o", "ka", "kb", "pv1", "pv2", "kpenal", "pv3"]
+    _angleskeys = ['Theta,o', 'ka', 'kb', 'pv1', 'pv2', 'kpenal', 'pv3']
 
-    _torkeys = ['reaxff4_torsion1', 'reaxff4_torsion2', 'reaxff4_torsion3',
-                'reaxff4_torsion4', 'reaxff4_torsion5', 'dummy1', 'dummy2']
+    _torkeys_gulp = ['reaxff4_torsion1', 'reaxff4_torsion2', 'reaxff4_torsion3',
+                     'reaxff4_torsion4', 'reaxff4_torsion5', 'dummy1', 'dummy2']
 
-    _torkeys_lammps = ['V1', 'V2', 'V3', 'V2(BO)', 'vconj', 'n.u.', 'n.u.']
+    _torkeys = ['V1', 'V2', 'V3', 'V2(BO)', 'vconj', 'n.u.', 'n.u.']
 
-    _hbkeys = ['reaxff3_hbond1', 'reaxff3_hbond2',
-               'reaxff3_hbond3', 'reaxff3_hbond4']
+    _hbkeys_gulp = ['reaxff3_hbond1', 'reaxff3_hbond2',
+                    'reaxff3_hbond3', 'reaxff3_hbond4']
 
-    _hbkeys_lammps = ['Rhb', 'Dehb', 'vhb1', 'vhb2']
+    _hbkeys = ['Rhb', 'Dehb', 'vhb1', 'vhb2']
 
     def __init__(self, species=None, params=None):
         self.species = species
