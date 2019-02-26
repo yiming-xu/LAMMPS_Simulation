@@ -616,7 +616,7 @@ class LAMMPS:
                 atom_attributes = {}
                 for (i, x) in enumerate(line.split()[2:]):
                     atom_attributes[x] = i
-                for n in range(n_atoms):
+                for _n in range(n_atoms):
                     line = f.readline()
                     fields = line.split()
                     id.append(int(fields[atom_attributes['id']]))
@@ -626,7 +626,7 @@ class LAMMPS:
                     velocities.append([float(fields[atom_attributes[x]])
                                        for x in ['vx', 'vy', 'vz']])
                     forces.append([float(fields[atom_attributes[x]])
-                                   for x in ['fx', 'fy', 'fz']])
+                                    for x in ['fx', 'fy', 'fz']])
                 # Re-order items according to their 'id' since running in
                 # parallel can give arbitrary ordering.
                 type = [x for _, x in sorted(zip(id, type))]
