@@ -15,9 +15,266 @@ from ase.build import molecule
 from ase.data import atomic_numbers, covalent_radii, vdw_radii
 from ase.neighborlist import neighbor_list
 from ase.visualize.plot import plot_atoms
+from ase.io import read, write
 
 
-def rotate_plot_atoms(atoms, radii=1.0, rotation_list=None, interval=40):
+class LAMMPScalculation:
+    """ This class automates and stores some common functions used to set-up a LAMMPS calculation.
+    """
+
+    def __init__(self, atoms, label, temp_fd="temp_lammps", **kwargs):
+        from lammpsrun import Prism
+        from lammps import IPyLammps
+        from ase.data import atomic_numbers, atomic_masses
+
+        self.atoms = atoms.copy()
+        symbols = self.atoms.get_chemical_symbols()
+        species = sorted(set(symbols))
+
+        n_atom_types = len(species)
+
+        self.prism = Prism(self.atoms.get_cell())
+        xhi, yhi, zhi, xy, xz, yz = self.prism.get_lammps_prism_str()
+        species_i = dict([(s, i + 1) for i, s in enumerate(species)])
+
+        if 'potential' in kwargs.keys():
+            potential = kwargs['potential']
+        else:
+            potential = 'ffield.reax.Fe_O_C_H_combined'
+
+        self.label = label
+        self.temp_fd = os.path.join(os.getcwd(), temp_fd)
+
+        self.dump_file = os.path.join(
+            self.temp_fd, "{}.lammpstrj".format(label))
+        self.log_file = os.path.join(self.temp_fd, "{}.log".format(label))
+
+        reaxff_params = {"periodicity": ["p", "p", "p"],
+                         "timestep": 1}
+        for key in kwargs.keys():
+            reaxff_params[key] = kwargs[key]
+
+        # Setting up calculation
+        # These parameter should not change
+        self.calc = IPyLammps()
+        self.calc.log(self.log_file)
+
+        self.calc.units("real")
+        self.calc.atom_style("charge")
+
+        self.calc.boundary(*reaxff_params["periodicity"])
+        self.calc.neighbor(2.0, "bin")
+        self.calc.neigh_modify("delay", 10, "check", "yes")
+
+        self.calc.lattice("sc", 1.0)
+        # xlo xhi ylo yhi zlo zhi
+        self.calc.region("asecell", "prism", 0.0, xhi, 0.0, yhi,
+                         0.0, zhi, xy, xz, yz, 'side in', 'units box')
+        self.calc.create_box(n_atom_types, "asecell")
+
+        # Writing atomic attributes
+        for s, pos in zip(symbols, self.atoms.get_positions()):
+            self.calc.create_atoms(
+                species_i[s], "single", *self.prism.pos_to_lammps_fold_str(pos))
+        for k, v in species_i.items():
+            self.calc.mass(v, atomic_masses[atomic_numbers[k]])
+
+        self.calc.timestep(reaxff_params['timestep'])
+        self.calc.pair_style("reax/c ", "NULL", "safezone", 20, "mincap", 100)
+        self.calc.pair_coeff("* *", potential, *species_i)
+
+    def set_fixes(self):
+        self.calc.fix("qeqreax", "all", "qeq/reax",
+                      1, 0.0, 10.0, "1e-6", "reax/c")
+
+    def set_output(self):
+        self.calc.dump("dump_all", "all", "custom", 1, self.dump_file,
+                       "id type x y z vx vy vz fx fy fz")
+        self.calc.thermo_style(
+            "custom", "step temp press cpu pxx pyy pzz pxy pxz pyz ke pe etotal vol lx ly lz atoms")
+        self.calc.thermo_modify("flush", "yes")
+        self.calc.thermo(1)
+        self.calc.info("all")
+
+    def read_lammps_trj(self, lammps_trj=None) -> list:
+        """Method which reads a LAMMPS dump file."""
+        if not lammps_trj:
+            lammps_trj = os.path.join(self.dump_file)
+
+        trajectory = []
+        with open(lammps_trj, 'r') as f:
+            while True:
+                line = f.readline()
+                if not line:
+                    break
+
+                if 'ITEM: TIMESTEP' in line:
+                    n_atoms = 0
+                    lo = []
+                    hi = []
+                    tilt = []
+                    atom_id = []
+                    atom_type = []
+                    positions = []
+                    velocities = []
+                    forces = []
+
+                elif 'ITEM: NUMBER OF ATOMS' in line:
+                    line = f.readline()
+                    n_atoms = int(line.split()[0])
+
+                elif 'ITEM: BOX BOUNDS' in line:
+                    tilt_items = line.split()[3:]
+                    for i in range(3):
+                        line = f.readline()
+                        fields = line.split()
+                        lo.append(float(fields[0]))
+                        hi.append(float(fields[1]))
+                        if len(fields) >= 3:
+                            tilt.append(float(fields[2]))
+
+                if 'ITEM: ATOMS' in line:
+                    atom_attributes = {}
+                    for (i, x) in enumerate(line.split()[2:]):
+                        atom_attributes[x] = i
+                    for _n in range(n_atoms):
+                        line = f.readline()
+                        fields = line.split()
+                        atom_id.append(int(fields[atom_attributes['id']]))
+                        atom_type.append(int(fields[atom_attributes['type']]))
+                        positions.append([float(fields[atom_attributes[x]])
+                                          for x in ['x', 'y', 'z']])
+                        velocities.append([float(fields[atom_attributes[x]])
+                                           for x in ['vx', 'vy', 'vz']])
+                        forces.append([float(fields[atom_attributes[x]])
+                                       for x in ['fx', 'fy', 'fz']])
+
+                    # Re-order items according to their 'id' since running in
+                    # parallel can give arbitrary ordering.
+                    atom_type = [x for _, x in sorted(zip(atom_id, atom_type))]
+                    positions = [x for _, x in sorted(zip(atom_id, positions))]
+                    velocities = [x for _, x in sorted(
+                        zip(atom_id, velocities))]
+                    forces = [x for _, x in sorted(zip(atom_id, forces))]
+
+                    # determine cell tilt (triclinic case!)
+                    if len(tilt) >= 3:
+                        # for >=lammps-7Jul09 use labels behind "ITEM: BOX BOUNDS"
+                        # to assign tilt (vector) elements ...
+                        if len(tilt_items) >= 3:
+                            xy = tilt[tilt_items.index('xy')]
+                            xz = tilt[tilt_items.index('xz')]
+                            yz = tilt[tilt_items.index('yz')]
+                        # ... otherwise assume default order in 3rd column
+                        # (if the latter was present)
+                        else:
+                            xy = tilt[0]
+                            xz = tilt[1]
+                            yz = tilt[2]
+                    else:
+                        xy = xz = yz = 0
+
+                    # Error with LAMMPS traj file output
+                    # Temporary work around with this:
+                    xhilo = (hi[0] - lo[0]) + xy - xz
+                    # This is what it is supposed to be
+                    # xhilo = (hi[0] - lo[0]) - xy - xz
+                    yhilo = (hi[1] - lo[1]) - yz
+                    zhilo = (hi[2] - lo[2])
+
+                    cell = [[xhilo, 0, 0], [xy, yhilo, 0], [xz, yz, zhilo]]
+
+                    # These have been put into the correct order
+                    cell_atoms = np.array(cell)
+                    type_atoms = np.array(atom_type)
+
+                    if self.atoms:
+                        # BEWARE: reconstructing the rotation from the LAMMPS
+                        #         output trajectory file fails in case of shrink
+                        #         wrapping for a non-periodic direction
+                        #      -> hence rather obtain rotation from prism object
+                        #         used to generate the LAMMPS input
+                        # rotation_lammps2ase = np.dot(
+                        #               np.linalg.inv(np.array(cell)), cell_atoms)
+                        rotation_lammps2ase = np.linalg.inv(self.prism.R)
+
+                        type_atoms = self.atoms.get_atomic_numbers()
+                        positions_atoms = np.dot(
+                            positions, rotation_lammps2ase)
+                        velocities_atoms = np.dot(
+                            velocities, rotation_lammps2ase)
+                        forces_atoms = np.dot(forces, rotation_lammps2ase)
+
+                    tmp_atoms = Atoms(type_atoms,
+                                      positions=positions_atoms,
+                                      cell=cell_atoms)
+                    tmp_atoms.set_velocities(velocities_atoms)
+                    tmp_atoms.set_pbc(self.atoms.get_pbc())
+                    trajectory.append(tmp_atoms)
+        return trajectory, forces_atoms
+
+
+class GULPcalculation:
+    """ This class automates and stores some common functions used to set-up a GULP calculation.
+    """
+
+    def __init__(self, atoms, label, temp_fd="temp", keywords='conp opti', options=None, calc=None, **kwargs):
+        from gulp import GULP
+
+        self.label = label
+        self.temp_fd = temp_fd
+        self.keywords = keywords
+        self.options = ['dump every 1 noover {}.grs'.format(
+            os.path.join(temp_fd, label))]
+
+        if options:
+            self.options.extend(options)
+        if calc:
+            self.calc = calc
+        else:
+            self.calc = GULP(label=label,
+                             keywords=self.keywords,
+                             options=self.options,
+                             **kwargs)
+
+        self.atoms = atoms.copy()
+        self.atoms.calc = self.calc
+        if 'opti' in self.keywords:
+            self.opt = self.calc.get_optimizer(self.atoms)
+
+    def read_intermediate_geometry(self):
+        energy = []
+        with open(self.label+'.got') as f:
+            while True:
+                line = f.readline()
+                if not line:
+                    break
+                if line.startswith("  Cycle:"):
+                    energy.append(float(line.split()[3]))
+
+        traj_file_list = [os.path.join(
+            self.temp_fd, self.label+'_{}.grs'.format(i+1)) for i in range(len(energy))]
+        trajectory = self.calc.read_trajectory(traj_file_list)
+
+        return energy, trajectory
+
+
+def rotate_plot_atoms(atoms, radii=1.0, rotation_list=None, interval=40, jsHTML=False):
+    """Plots the *atoms* object through the *rotation_list*. If properly structured, 
+    this would result in the atoms rotating.
+
+    This function makes use of ASE's plot_atoms function. In Jupyter notebook, the
+    *notebook* backend should be used. (%matplotlib notebook)
+
+    Parameters:
+
+    atoms: Atoms instance
+    radii: float
+    interval: int
+    cut_off: float
+    rotation_list: list
+        A list of rotation coordinates accepted by plot_atoms.
+    """
 
     if rotation_list is None:
         rotation_list = ['90x, {}y, 0z'.format(x) for x in range(360)]
@@ -33,10 +290,13 @@ def rotate_plot_atoms(atoms, radii=1.0, rotation_list=None, interval=40):
     ax.set_axis_off()
     ani = animation.FuncAnimation(fig, update_plot_atoms, len(rotation_list),
                                   interval=40, blit=False, repeat=True)
+    if jsHTML:
+        from IPython.display import HTML
+        ani = HTML(ani.to_jshtml())
     return ani
 
 
-def reaxff_params_generator(sim_box, job_name, input_fd="", write=False, **kwargs):
+def reaxff_params_generator(sim_box, job_name, input_fd="", write_input=False, **kwargs):
     from lammpsrun import LAMMPS, write_lammps_data
 
     list_of_elements = sorted(list(set(sim_box.get_chemical_symbols())))
@@ -73,7 +333,9 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write=False, **kwarg
                       sim_box, charges=True, force_skew=True)
     calc = LAMMPS(parameters=reaxff_params, always_triclinic=True)
     sim_box.set_calculator(calc)
-    if write:
+    if write_input:
+        write(os.path.join(input_fd, job_name + ".extxyz",),
+              sim_box, format="extxyz")
         calc.write_lammps_in(lammps_in=os.path.join(input_fd, "{0}.lammpsin".format(job_name)),
                              lammps_trj="{0}.lammpstrj".format(job_name),
                              lammps_data="{0}.lammpsdata".format(job_name))
@@ -91,8 +353,6 @@ def get_coordination_number(sim_box, atom_index, cut_off=1.0, vdw_cut_off=1.0, c
 
     Parameters:
 
-    atoms: Atoms instance
-        This should correspond to a repeatable unit cell.
     sim_box: Atoms | list of Atoms
     atom_index: list
     cut_off: float
