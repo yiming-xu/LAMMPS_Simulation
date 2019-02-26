@@ -176,7 +176,7 @@ class reaxFF_data:
             # Writing values section
             for index, row in p[connectivity].iterrows():
                 # Remove the 'source' column
-                row = row[:-1]
+                cur_row = row[row.index!='source']
                 connectivity_symbol = index.split('-')
 
                 # For species, print the chemical symbols directly
@@ -188,12 +188,12 @@ class reaxFF_data:
                     ["{:>2}"]*number_atoms).format(*connectivity_symbol)
                 outstr += cstr
 
-                print_vals = row.values[:pars_length]
+                print_vals = cur_row.values[:pars_length]
                 outstr += ' '*(13+c2l_length-len(cstr)) + \
                     regex(len(print_vals)).format(*print_vals) + '\n'
 
                 for i in range(1, param_lines):
-                    print_vals = row.values[pars_length*i:pars_length*(i+1)]
+                    print_vals = cur_row.values[pars_length*i:pars_length*(i+1)]
                     outstr += ' '*(13+c2l_length) + \
                         regex(len(print_vals)).format(*print_vals) + '\n'
 
@@ -205,13 +205,14 @@ class reaxFF_data:
 
         outstr = ""
         p = self.params
-
-        outstr += ("{}".format(self.description))
+        if self.description:
+            outstr += ("{}".format(self.description.rstrip()))
         outstr += "\n"
-        
+
         # Print general parameters
+        # Assuming a final column of 'source', then let's not print that
         outstr += "{:8d} ! Number of general parameters\n".format(
-            p['general'].shape[1]-1)
+            p['general'].shape[1]-('source' in p['general'].columns))
 
         # Index is a bit meaningless for general parameters
         for _i, row in p['general'].iterrows():
