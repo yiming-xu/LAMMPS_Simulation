@@ -174,7 +174,7 @@ class GULP(FileIOCalculator):
         cycles = -1
         self.optimized = None
         for i, line in enumerate(lines):
-            if line.startswith("  Final energy ="):
+            if line.startswith("  Final energy") and 'eV' in line:
                 energy = float(line.split()[-2])
                 self.results['energy'] = energy
                 self.results['free_energy'] = energy
