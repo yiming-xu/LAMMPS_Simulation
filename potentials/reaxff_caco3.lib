@@ -1,0 +1,301 @@
+#
+#  Library of potential parameters for reactive simulation of aqueous calcium carbonate systems.
+#
+#  Julian D. Gale, Paolo Raiteri and Adri C.T. van Duin, (submitted)
+#
+#  Use of the library requires GULP version 3.5 or later. 
+#
+#  All distances are in units of Angstroms
+#  All energies  are in units of eV, except where the sub-option kcal is specified in which
+#                                    case the units are kcal/mol.
+#
+#  Keywords:  Turn off Ewald sum / set iterative charge solution
+#
+keyword noewald noelectro qiter
+#
+#  Set cutoff distances for VDW and Coulomb interactions to be 10 Angstroms
+#
+reaxFFvdwcutoff      10.0000
+reaxFFqcutoff        10.0000
+#
+#  Bond order tolerances / cut-offs : bomin anglemin angleprod hbondmin hbonddist torsionprod
+#
+reaxFFtol       0.001 0.001 0.000001 0.01 7.5 0.000000001
+#
+#  Species independent parameters:
+#
+#  reaxff0_bond p_boc1 p_boc2
+#
+reaxff0_bond        50.0  9.5469 
+#
+#  reaxff0_over p_ovun3 p_ovun4 p_ovun6 p_ovun7 p_ovun8
+#
+reaxff0_over        50.0  0.6991 1.0588  12.1176 13.3056 
+#
+#  reaxff0_valence p_val7 p_val8 p_val9 p_val10
+#
+reaxff0_valence     33.866700  1.8512 1.0563   2.0384 
+#
+#  reaxff0_penalty p_pen2 p_pen3 p_pen4
+#
+reaxff0_penalty      6.929000  0.3989 3.9954 
+#
+#  reaxff0_torsion p_tor2 p_tor3 p_tor4 p_cot2
+#
+reaxff0_torsion      5.779600 10.0000 1.9487   2.1645 
+#
+#  reaxff0_vdw p_vdw1
+#
+reaxff0_vdw          1.559100 
+#
+#  reaxff0_lonepair p_lp1
+#
+reaxff0_lonepair     6.089100 
+#
+#  Species parameters :
+#
+#
+#  reaxff1_radii species_1 r_sigma r_pi r_pipi
+#
+reaxff1_radii 
+C     1.3817   1.1341   1.2114 
+H     0.8930  -0.1000  -0.1000 
+O     1.2450   1.0548   0.9049 
+#
+#  reaxff1_valence species_1 Val_normal Val_boc Val_lp Val_angle
+#
+reaxff1_valence 
+C     4.0000   4.0000   4.0000   4.0000 
+H     1.0000   1.0000   1.0000   1.0000 
+O     2.0000   4.0000   6.0000   4.0000 
+#
+#  reaxff1_over species_1 p_boc3 p_boc4 p_boc5 p_ovun2
+#
+reaxff1_over 
+C    34.9289   8.9539  13.5366  -2.8983
+H     2.4197   3.0408   0.0003 -19.4571
+O     0.7640   3.5027   0.0021  -3.5500
+#
+#  reaxff1_under species_1 p_ovun5
+#
+reaxff1_under kcal 
+C    34.9350 
+H     0.0000 
+O    37.5000 
+#
+#  reaxff1_lonepair species_1 n_lp_opt p_lp2
+#
+reaxff1_lonepair kcal 
+C     0.0000   0.0000  
+H     0.0000   0.0000  
+O     2.0000   0.4056  
+#
+#  reaxff1_angle species_1 p_val3 p_val5
+#
+reaxff1_angle 
+C     2.5000   2.9663  
+H     4.2733   2.8793  
+O     2.9000   2.9225  
+#
+#  reaxff1_morse species_1 alpha Dij rvdw gamma_w
+#
+reaxff1_morse kcal 
+C     9.7559   0.1838   1.8903   2.1346 
+H     8.2230   0.0930   1.3550  33.2894 
+O     9.7300   0.1000   2.3890  13.8449 
+#
+#  Element parameters for charge equilibration/Coulomb interactions:
+#
+#
+#  reaxff_chi species_1 electronegativity_of_element
+#
+reaxff_chi  
+C     5.9666 
+H     3.7248 
+O     8.5000 
+#
+#  reaxff_mu species_1 hardness_of_element
+#
+reaxff_mu  
+C     7.0000
+H     9.6093
+O     8.3122
+#
+#  reaxff_gamma species_1 screening_parameter
+#
+reaxff_gamma  
+C     0.9000 
+H     0.8203 
+O     1.0898 
+#
+#  Bond order parameters:
+#
+#  Sub-options: 
+#
+#  over      => correct for overcoordination using f1
+#       bo13 => correct for 1-3 terms using f4 and f5
+#  over bo13 => correct for overcoordination using f1 and 1-3 terms using f4 and f5
+#
+#
+#  reaxff2_bo species_1 species_2 p_bo1 p_bo2 p_bo3 p_bo4 p_bo5 p_bo6
+#
+reaxff2_bo over bo13
+C   C   -0.0777  6.7268 -0.1000  9.1628 -0.4550 37.6117 
+O   O   -0.1225  5.5000 -0.1055  9.0000 -0.1000 29.7503 
+#
+#  reaxff2_bo species_1 species_2 p_bo1 p_bo2 p_bo3 p_bo4 p_bo5 p_bo6
+#
+reaxff2_bo bo13
+C   H   -0.0500 6.9136  0.0000 0.0000  0.0000  6.0000 
+H   H   -0.0790 6.0552  0.0000 0.0000  0.0000  6.0000 
+H   O   -0.0920 4.2790  0.0000 0.0000  0.0000  6.0000 
+#
+#  reaxff2_bo species_1 species_2 p_bo1 p_bo2 p_bo3 p_bo4 p_bo5 p_bo6
+#
+reaxff2_bo bo13 over
+C   O    -0.1406   5.6488  -0.2871   9.2845  -0.2029  19.7207
+#
+#  reaxff2_bond species_1 species_2 De_sigma De_pi De_pipi p_be1 p_be2
+#
+reaxff2_bond kcal 
+O   O     0.0000   0.0000   0.0000   0.2506   0.3451 
+C   C   158.2004  99.1897  78.0000  -0.7738   0.4590 
+C   H   169.4760   0.0000   0.0000  -0.6083   5.2290 
+H   H   153.3934   0.0000   0.0000  -0.4600   6.2500 
+C   O   158.6946 107.4583  23.3136  -0.4240   0.5322 
+H   O   160.0000   0.0000   0.0000  -0.5725   1.1150 
+#
+#  reaxff2_over species_1 species_2 p_ovun1
+#
+reaxff2_over 
+C   C     0.4147 
+C   H     0.7652 
+H   H     0.7300 
+C   O     1.0000 
+O   O     0.6051 
+H   O     0.5626 
+#
+#  reaxff2_morse species_1 species_2 De alpha r0 r_sigma r_pi r_pipi
+#
+reaxff2_morse kcal 
+C   H    0.1239   9.8467   1.4004   1.1210  -1.0000  -1.0000 
+H   O    0.0283  10.9190   1.2885   0.9215  -1.0000  -1.0000 
+C   O    0.1156   9.8317   1.8520   1.2854   1.1352   1.0706 
+#
+#  Angle parameters:
+#
+#
+#  reaxff3_angle species_1 species_2 species_3 theta_00 p_val1 p_val2 p_val4 p_val7
+#
+reaxff3_angle kcal 
+C  C  C   59.0573  30.7029   0.7606   1.1244   0.7180 
+C  C  H   65.7758  14.5234   6.2481   1.6255   0.5665 
+C  H  H   70.2607  25.2202   3.7312   2.7500   0.0050 
+H  C  C    0.0000   3.4110   7.7350   1.0400   0.0000 
+H  H  H    0.0000  27.9213   5.8635   1.0400   0.0000 
+C  C  O   49.6811   7.1713   4.3889   1.0463   0.7171 
+C  O  O   77.7473  40.1718   2.9802   2.2503   1.6170 
+C  H  O   65.0000  13.8815   5.0583   1.4900   0.4985 
+O  C  C   73.5312  44.7275   0.7354   1.0684   3.0000 
+O  C  O   79.4761  36.3701   1.8943   3.0000   0.7351 
+O  O  O   80.7324  30.4554   0.9953   1.0783   1.6310 
+O  C  H   70.1880  20.9562   0.3864   1.6924   0.0050 
+O  H  O   75.6935  50.0000   2.0000   1.1680   1.0000 
+O  H  H   85.8000   9.8453   2.2720   1.5800   2.8635 
+H  C  O    0.0000  25.0000   3.0000   1.0400   1.0000 
+H  O  O    0.0000  15.0000   2.8900   2.8774   0.0000 
+H  H  O    0.0000   8.5744   3.0000   1.0421   0.0000 
+#
+#  reaxff3_penalty species_1 species_2 species_3 p_pen1
+#
+reaxff3_penalty kcal 
+C   C   C     6.2933 
+C   C   H     0.0000 
+C   H   H     0.0000 
+H   C   H     0.0000 
+H   C   C     0.0000 
+H   H   H     0.0000 
+C   C   O    10.2661 
+C   O   O   -46.1315 
+C   H   O     0.0000 
+O   C   C     0.0000 
+O   C   O    67.6777 
+O   O   O    50.0000 
+O   C   H     0.0000 
+O   H   O     0.0000 
+O   H   H     0.0000 
+H   C   O     0.0000 
+H   O   O     0.0000 
+H   H   O     0.0000 
+#
+#  reaxff3_conjugation species_1 species_2 species_3 p_coa1 p_coa2 p_coa3 p_coa4
+#
+reaxff3_conjugation kcal 
+C   O   O  -25.3063  26.5405   2.6962   2.1365 
+#
+#  Hydrogen bond parameters:
+#
+#
+#  reaxff3_hbond species_1 species_2 species_3 r0_hb p_hb1 p_hb2 p_hb3
+#
+reaxff3_hbond kcal 
+H   O   O  2.1200  -3.5800   1.4500  19.5000 
+#
+#  Torsion parameters:
+#
+#
+#  reaxff4_torsion species_1 species_2 species_3 species_4 V1  V2  V3  p_tor1 p_cot1
+#
+reaxff4_torsion kcal 
+C  C  C  C   -0.2500  34.7453   0.0288  -6.3507  -1.6000 
+C  C  C  H   -0.2500  29.2131   0.2945  -4.9581  -2.1802 
+H  C  C  H   -0.2500  31.2081   0.4539  -4.8923  -2.2677 
+C  C  C  O   -0.3495  22.2142  -0.2959  -2.5000  -1.9066 
+H  C  C  O    0.0646  24.3195   0.6259  -3.9603  -1.0000 
+O  C  C  O   -0.5456   5.5756   0.8433  -5.1924  -1.0180 
+C  C  O  C    1.7555  27.9267   0.0072  -2.6533  -1.0000 
+C  C  O  H   -1.4358  36.7830  -1.0000  -8.1821  -1.0000 
+H  C  O  C   -1.3959  34.5053   0.7200  -2.5714  -2.1641 
+H  C  O  H   -2.5000  70.0597   1.0000  -3.5539  -2.9929 
+C  C  O  O    0.6852  11.2819  -0.4784  -2.5000  -2.1085 
+H  C  O  O    0.1933  80.0000   1.0000  -4.0590  -3.0000 
+O  C  O  C   -1.9889  76.4820  -0.1796  -3.8301  -3.0000 
+O  C  O  H    0.2160  72.7707  -0.7087  -4.2100  -3.0000 
+O  C  O  O   -2.5000  71.0772   0.2542  -3.1631  -3.0000 
+C  O  O  C    2.5000  -0.6002   1.0000  -3.4297  -2.8858 
+C  O  O  H   -2.5000  -3.3822   0.7004  -5.4467  -2.9586 
+H  O  O  H    2.5000  -4.0000   0.9000  -2.5000  -1.0000 
+C  O  O  O    1.2329  -4.0000   1.0000  -2.5000  -1.7479 
+H  O  O  O    0.8302  -4.0000  -0.7763  -2.5000  -1.0000 
+O  O  O  O   -2.5000  -4.0000   1.0000  -2.5000  -1.0000 
+X  C  H  X    0.0000   0.0000   0.0000   0.0000   0.0000 
+X  H  H  X    0.0000   0.0000   0.0000   0.0000   0.0000 
+X  H  O  X    0.0000   0.1000   0.0200  -2.5415   0.0000 
+X  C  C  X    0.0000  50.0000   0.3000  -4.0000  -2.0000 
+X  O  O  X    0.5511  25.4150   1.1330  -5.1903  -1.0000 
+C  C  O  O   -2.0000  73.0530   1.5000  -9.0000  -2.0000 
+C  O  O  C    0.0002  80.0000  -1.5000  -2.5000  -2.0000 
+O  C  O  O   -1.8835  20.0000   1.5000  -9.0000  -2.0000 
+#
+#  Ca parameters:
+#
+#  Gamma parameter for screened Coulomb interaction
+#
+reaxff_gamma
+Ca  0.6 
+#
+#  Fix the charge on Ca as being +2.0
+#
+reaxff_fixq
+Ca  2.0 
+#
+#  Lennard-Jones (12-6) potential between Ca and O - cut-off 10 Angstroms
+#
+lennard 12 6
+Ca  O  4700.0 0.0 0.0 10.0 
+#
+#  Buckingham potentials between Ca and H/C - A rho C6 rmin rmax
+#
+buck
+Ca  H   310.47299 0.337744  0.0000000 0.00 10.00 
+Ca  C   723.40055 0.333801  0.0000000 0.00 10.00 

@@ -1,0 +1,115 @@
+#
+#  ReaxFF force field
+#
+#  Original paper:
+#
+#  A.C.T. van Duin, S. Dasgupta, F. Lorant and W.A. Goddard III,
+#  J. Phys. Chem. A, 105, 9396-9409 (2001)
+#
+#  Parameters description:
+#
+#  DATE: 2018-10-18 CONTRIBUTOR: Yiming Xu yiming.xu15@imperial.ac.uk CITATION: Weiwei Zhang and Adri C. T. van Duin Second-Generation ReaxFF Water Force Field: Improvements in the Description of Water Density and OH-Anion Diffusion, J. Phys. Chem. B, 2017, 121 (24), pp 6021–6032 DOI: 10.1021/acs.jpcb.7b02548#
+#  Cutoffs for VDW & Coulomb terms
+#
+reaxFFvdwcutoff      10.0000
+reaxFFqcutoff        10.0000
+#
+#  Bond order threshold - check anglemin as this is cutof2 given in control file
+#
+reaxFFtol  0.0010000000 0.0010000000 0.0000010000 0.0100000000 7.5000000000 0.0000000010
+#
+#  Species independent parameters 
+#
+reaxff0_bond        50.000000     9.546900
+reaxff0_over        50.000000     0.699100     1.058800    12.117600    13.305600
+reaxff0_valence     33.866700     1.851200     1.056300     2.038400
+reaxff0_penalty      6.929000     0.398900     3.995400
+reaxff0_torsion      5.779600    10.000000     1.948700     2.164500
+reaxff0_vdw          1.559100
+reaxff0_lonepair     6.089100
+#
+#  Species parameters 
+#
+reaxff1_radii 
+H  core   0.8930  -0.1000  -0.1000 
+O  core   1.2450   1.0548   0.0000 
+reaxff1_valence 
+H  core   1.0000   1.0000   1.0000   1.0000 
+O  core   2.0000   4.0000   6.0000   4.0000 
+reaxff1_over 
+H  core   2.4197   3.0408   0.0003 -19.4571 
+O  core   0.6653   3.5357   0.0021  -3.6039 
+reaxff1_under kcal 
+H  core   0.0000 
+O  core  37.5000 
+reaxff1_lonepair kcal 
+H  core   0.0000   0.0000 
+O  core   2.0000   0.1000 
+reaxff1_angle 
+H  core   4.2733   2.8793 
+O  core   2.7952   2.9225 
+reaxff1_morse kcal 
+H  core   8.2180   0.0930   1.3550  33.2894 
+O  core   9.7942   0.1038   2.3808  11.7301 
+#
+# Element parameters 
+#
+reaxff_chi 
+H  core   3.7248 
+O  core   8.5000 
+reaxff_mu 
+H  core   9.6093 
+O  core   8.3134 
+reaxff_gamma 
+H  core   0.8203 
+O  core   1.0950 
+#
+# Bond parameters 
+#
+reaxff2_bo over bo13 
+O  core O  core  -0.1225   5.5000  -0.1055   9.0000   0.0000  29.7503 
+reaxff2_bo bo13 
+H  core H  core  -0.0790   6.0552   0.0000   0.0000   0.0000   6.0000 
+H  core O  core  -0.0924   4.2778   0.0000   0.0000   0.0000   6.0000 
+reaxff2_bond kcal 
+H  core H  core 153.3934   0.0000   0.0000  -0.4600   6.2500 
+H  core O  core 167.2086   0.0000   0.0000  -0.5770   1.1413 
+O  core O  core 142.2858 145.0000  50.8293   0.2506   0.3451 
+reaxff2_over 
+H  core H  core   0.7300 
+H  core O  core   0.6019 
+O  core O  core   0.6051 
+reaxff2_morse kcal 
+H  core O  core   0.0320  10.9108   1.2896   0.9215  -1.0000  -1.0000 
+#
+# Angle parameters 
+#
+reaxff3_angle kcal 
+H  core H  core H  core   0.0000  27.9213   5.8635   1.0400   0.0000 
+H  core H  core O  core   0.0000   6.4269   2.8500   1.0772   0.0000 
+O  core H  core H  core  85.1864   8.5843   2.2985   2.0521   2.9142 
+O  core H  core O  core  75.6935  50.0000   2.0000   1.1680   1.0000 
+H  core O  core O  core   0.0000  11.8475   2.7571   2.9000   0.0000 
+O  core O  core O  core  80.7324  30.4554   0.9953   1.0783   1.6310 
+reaxff3_penalty kcal 
+H  core H  core H  core   0.0000 
+H  core H  core O  core   0.0000 
+O  core H  core H  core   0.0000 
+O  core H  core O  core   0.0000 
+H  core O  core O  core   0.0000 
+O  core O  core O  core  50.0000 
+#
+# Hydrogen bond parameters 
+#
+reaxff3_hbond kcal 
+H  core O  core O  core   2.1653  -3.6983   1.7831  17.0964 
+#
+# Torsion parameters 
+#
+reaxff4_torsion kcal 
+H  core O  core O  core H  core   2.5000  -4.0000   0.9000  -2.5000  -1.0000 
+H  core O  core O  core O  core   0.8302  -4.0000  -0.7763  -2.5000  -1.0000 
+O  core O  core O  core O  core  -2.5000  -4.0000   1.0000  -2.5000  -1.0000 
+X  core H  core H  core X  core   0.0000   0.0000   0.0000   0.0000   0.0000 
+X  core H  core O  core X  core   0.0000   0.1000   0.0200  -2.5415   0.0000 
+X  core O  core O  core X  core   0.5511  25.4150   1.1330  -5.1903  -1.0000 
