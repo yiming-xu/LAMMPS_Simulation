@@ -421,7 +421,22 @@ def replace_molecule(sim_box, source_index, new_mol, cut_off=1.0, seed=None):
 
 
 def create_water_region(cell):
-    'Creates a region of water with approximate density at 300K'
+    """Creates a region of water for the cell specified. The density is assumed to be that
+    of normal water at 1atm and 300K.
+
+    Internally, this first creates a grid of Ne atoms, and then rattle them very slightly
+    (std = 1/10 of a H2O molecule size). The Ne atoms are then replaced with H2O molecules
+    centered on Ne. Be _very_ careful that the atoms are not out of bounds. It can happen
+    after some rotations. Recommend to put in a slightly smaller cell to give some margins.
+
+    Parameters:
+
+    cell: list | numpy array
+
+    Returns:
+
+    H2O_bulk: Atoms | list of Atom
+    """
 
     aq_cell = cell
     H2O_volume = (1e+27)/(1000/18 * units.mol)
