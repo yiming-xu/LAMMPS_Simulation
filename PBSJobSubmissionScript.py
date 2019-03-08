@@ -79,8 +79,8 @@ class PBS_Submitter:
         for k in self.params.keys():
             # Need to treat the ones that are intrinsically list differently
             if k in ["modules", "job_commands", "source_files"]:
-                # If it is not a 2D list of commands for all jobs (must be correct length and not identical)
-                if not (len(self.params[k]) == self.no_of_jobs and (self.params[k][1:] != self.params[k][:-1] or len(self.params[k]) == 1)):
+                # If it is not a 2D list of commands for all jobs (not (correct length and not identical))
+                if not (len(self.params[k]) == self.no_of_jobs and (self.params[k][1:] == self.params[k][:-1] or len(self.params[k]) == 1)):
                     self.params[k] = [self.params[k]]*self.no_of_jobs
 
             else:
