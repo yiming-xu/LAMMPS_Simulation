@@ -1,7 +1,7 @@
 from ase import Atoms, units
 from ase.io.trajectory import Trajectory
 from ase.io import write, read
-from ase.calculators.lammpsrun import LAMMPS, Prism
+from lammpsrun import LAMMPS, Prism
 import sys
 
 file_name = sys.argv[1]
