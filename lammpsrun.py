@@ -626,13 +626,12 @@ class LAMMPS:
                     velocities.append([float(fields[atom_attributes[x]])
                                        for x in ['vx', 'vy', 'vz']])
                     forces.append([float(fields[atom_attributes[x]])
-                                    for x in ['fx', 'fy', 'fz']])
+                                   for x in ['fx', 'fy', 'fz']])
                 # Re-order items according to their 'id' since running in
                 # parallel can give arbitrary ordering.
-                type = [x for _, x in sorted(zip(id, type))]
-                positions = [x for _, x in sorted(zip(id, positions))]
-                velocities = [x for _, x in sorted(zip(id, velocities))]
-                forces = [x for _, x in sorted(zip(id, forces))]
+
+                id, type, positions, velocities, forces = zip(
+                    *sorted(zip(id, type, positions, velocities, forces)))
 
                 # determine cell tilt (triclinic case!)
                 if len(tilt) >= 3:
