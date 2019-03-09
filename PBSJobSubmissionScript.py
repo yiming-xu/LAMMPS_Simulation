@@ -46,6 +46,7 @@ from subprocess import Popen, PIPE, run
 import time
 import os
 
+
 class PBS_Submitter:
     "Defines a class to handling the PBS submission and checking"
 
@@ -80,7 +81,7 @@ class PBS_Submitter:
             # Need to treat the ones that are intrinsically list differently
             if k in ["modules", "job_commands", "source_files"]:
                 # If it is not a 2D list of commands (a 1D list for each job)
-                if not all([isinstance(x, list) for x in self.params[k]]):
+                if not (all([isinstance(x, list) for x in self.params[k]]) or (all([isinstance(x, str) for x in self.params[k]]) and len(self.params[k]) == self.no_of_jobs)):
                     self.params[k] = [self.params[k]]*self.no_of_jobs
 
             else:
@@ -92,9 +93,9 @@ class PBS_Submitter:
         "Iterates through and runs all the jobs."
         pbs_out = []
         pbs_err = []
-        
+
         for job_no in range(self.no_of_jobs):
-        # Loop over your jobs
+            # Loop over your jobs
 
             # Open a pipe to the qsub command.
             proc = Popen('qsub', shell=True, stdin=PIPE,
@@ -110,10 +111,10 @@ class PBS_Submitter:
                 "#PBS -e {0}.err\n".format(self.params['job_names'][job_no]).encode('utf-8'))
 
             proc.stdin.write("#PBS -l select={0}:ncpus={1}:mpiprocs={2}:ompthreads={3}:mem={4}gb\n"
-                             .format(self.params['proc_nodes'][job_no], 
-                                     self.params['proc_cpus'][job_no], 
+                             .format(self.params['proc_nodes'][job_no],
+                                     self.params['proc_cpus'][job_no],
                                      self.params['proc_mpiprocs'][job_no],
-                                     self.params['proc_threads'][job_no], 
+                                     self.params['proc_threads'][job_no],
                                      self.params['memory'][job_no])
                              .encode('utf-8'))
             proc.stdin.write(
@@ -122,30 +123,35 @@ class PBS_Submitter:
             # Loading modules for the simulation
             if type(self.params['modules'][job_no]) == list:
                 for module in self.params['modules'][job_no]:
-                    proc.stdin.write("module load {0}\n".format(module).encode('utf-8'))
+                    proc.stdin.write("module load {0}\n".format(
+                        module).encode('utf-8'))
             else:
-                proc.stdin.write("module load {0}\n".format(self.params['modules'][job_no]).encode('utf-8'))
+                proc.stdin.write("module load {0}\n".format(
+                    self.params['modules'][job_no]).encode('utf-8'))
 
             # Copying input files (*.in) from submission directory to temporary directory for job
             if type(self.params['source_files'][job_no]) == list:
                 for source_file in self.params['source_files'][job_no]:
-                    proc.stdin.write("cp {0} . \n".format(source_file).encode('utf-8'))
+                    proc.stdin.write("cp {0} . \n".format(
+                        source_file).encode('utf-8'))
             else:
-                proc.stdin.write("cp {0} . \n".format(self.params['source_files'][job_no]).encode('utf-8'))
+                proc.stdin.write("cp {0} . \n".format(
+                    self.params['source_files'][job_no]).encode('utf-8'))
 
             # Starting job with mpiexec, it will pick up assigned cores automatically
             if type(self.params['job_commands'][job_no]) == list:
                 for command in self.params['job_commands'][job_no]:
                     proc.stdin.write("{0}\n".format(command).encode('utf-8'))
             else:
-                proc.stdin.write("{0}\n".format(self.params['job_commands'][job_no]).encode('utf-8'))
+                proc.stdin.write("{0}\n".format(
+                    self.params['job_commands'][job_no]).encode('utf-8'))
 
             # Copy output back to directory in $HOME
             proc.stdin.write(
                 "mkdir $EPHEMERAL/$PBS_JOBID \n".encode('utf-8'))
             proc.stdin.write(
                 "cp * $EPHEMERAL/$PBS_JOBID/ \n".encode('utf-8'))
-                
+
             # Print your job and the system response to the screen as it's submitted
             out, err = proc.communicate()
             proc.kill()
@@ -156,59 +162,68 @@ class PBS_Submitter:
             else:
                 pbs_out.append(None)
             pbs_err.append(err)
-            
+
             if err != b'':
-                print("Submitted Job: {0}".format(self.params['job_names'][job_no]))
+                print("Submitted Job: {0}".format(
+                    self.params['job_names'][job_no]))
                 print(out, err)
 
             time.sleep(0.1)
 
         return pbs_out, pbs_err
 
-def qstat_monitor(jobs_list = None, update_frequency=5):
+
+def qstat_monitor(jobs_list=None, update_frequency=5):
     "Automatically runs qstat and monitors the output. Requires IPython"
     try:
         from IPython.display import clear_output
     except ImportError:
         print("Warning: clear_output will not work")
-    
+
     jobs = dict()
-    qstat_out_names = ['JobID', 'Job Name', 'User', 'Runtime', 'Status', 'Queue']
-    
+    qstat_out_names = ['JobID', 'Job Name',
+                       'User', 'Runtime', 'Status', 'Queue']
+
     while True:
         try:
             clear_output(wait=True)
         except NameError:
             pass
-        
-        # Set all to done
+
+        # Set all to done for each loop
         for k, v in jobs.items():
             v[3] = "Done"
-        
+
         if jobs_list:
             qstat_out_utf8 = []
             for job in jobs_list:
                 time.sleep(0.1)
-                qstat_CP = run(["qstat {0}".format(job)], stdout=PIPE, shell=True)
-                qstat_out_utf8.append(qstat_CP.stdout.splitlines()[2:])
+                qstat_CP = run(["qstat {0}".format(job)],
+                               stdout=PIPE, shell=True)
+                qstat_out_raw = qstat_CP.stdout.splitlines()
+                if len(qstat_out_raw) > 1:
+                    qstat_out_utf8.append(qstat_out_raw[2:])
         else:
             qstat_CP = run(["qstat"], stdout=PIPE)
-            qstat_out_utf8 = qstat_CP.stdout.splitlines()[2:]
+            qstat_out_raw = qstat_CP.stdout.splitlines()
+            if len(qstat_out_raw) > 1:
+                qstat_out_utf8 = qstat_CP.stdout.splitlines()[2:]
 
         qstat_out = [x.decode('utf-8') for x in qstat_out_utf8]
         for job in qstat_out:
             splitted_job = job.split()
+            # Assign status to dictionary
             jobs[splitted_job[0]] = splitted_job[1:]
-        
-        row_format ="{:>16}" * (len(qstat_out_names))
+
+        row_format = "{:>16}" * (len(qstat_out_names))
         print(row_format.format(*qstat_out_names))
 
         for k, v in jobs.items():
             print(row_format.format(k, *v))
-            
+
         if len(qstat_out_utf8) == 0:
             break
-            
+
         time.sleep(max(update_frequency/2, 5/2))
         print('Running...')
         time.sleep(max(update_frequency/2, 5/2))
