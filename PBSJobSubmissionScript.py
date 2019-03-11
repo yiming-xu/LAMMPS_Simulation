@@ -81,7 +81,7 @@ class PBS_Submitter:
             # Need to treat the ones that are intrinsically list differently
             if k in ["modules", "job_commands", "source_files"]:
                 # If it is not a 2D list of commands (a 1D list for each job)
-                if not (all([isinstance(x, list) for x in self.params[k]]) or (all([isinstance(x, str) for x in self.params[k]]) and len(self.params[k]) == self.no_of_jobs)):
+                if not all([isinstance(x, list) for x in self.params[k]]) :
                     self.params[k] = [self.params[k]]*self.no_of_jobs
 
             else:
@@ -121,30 +121,18 @@ class PBS_Submitter:
                 "#PBS -l walltime={0}\n\n".format(self.params['walltime'][job_no]).encode('utf-8'))
 
             # Loading modules for the simulation
-            if type(self.params['modules'][job_no]) == list:
-                for module in self.params['modules'][job_no]:
-                    proc.stdin.write("module load {0}\n".format(
-                        module).encode('utf-8'))
-            else:
+            for module in self.params['modules'][job_no]:
                 proc.stdin.write("module load {0}\n".format(
-                    self.params['modules'][job_no]).encode('utf-8'))
+                    module).encode('utf-8'))
 
             # Copying input files (*.in) from submission directory to temporary directory for job
-            if type(self.params['source_files'][job_no]) == list:
-                for source_file in self.params['source_files'][job_no]:
-                    proc.stdin.write("cp {0} . \n".format(
-                        source_file).encode('utf-8'))
-            else:
+            for source_file in self.params['source_files'][job_no]:
                 proc.stdin.write("cp {0} . \n".format(
-                    self.params['source_files'][job_no]).encode('utf-8'))
+                    source_file).encode('utf-8'))
 
             # Starting job with mpiexec, it will pick up assigned cores automatically
-            if type(self.params['job_commands'][job_no]) == list:
-                for command in self.params['job_commands'][job_no]:
-                    proc.stdin.write("{0}\n".format(command).encode('utf-8'))
-            else:
-                proc.stdin.write("{0}\n".format(
-                    self.params['job_commands'][job_no]).encode('utf-8'))
+            for command in self.params['job_commands'][job_no]:
+                proc.stdin.write("{0}\n".format(command).encode('utf-8'))
 
             # Copy output back to directory in $HOME
             proc.stdin.write(
