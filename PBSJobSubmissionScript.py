@@ -139,7 +139,8 @@ class PBS_Submitter:
                 "mkdir $EPHEMERAL/$PBS_JOBID \n".encode('utf-8'))
             proc.stdin.write(
                 "cp * $EPHEMERAL/$PBS_JOBID/ \n".encode('utf-8'))
-
+            proc.stdin.write(
+                "qstat -f $PBS_JOBID \n".encode('utf-8'))
             # Print your job and the system response to the screen as it's submitted
             out, err = proc.communicate()
             proc.kill()
