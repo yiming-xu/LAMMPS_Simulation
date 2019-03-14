@@ -569,33 +569,29 @@ class LAMMPS:
     def read_lammps_trj(self, lammps_trj=None, set_atoms=False):
         """Method which reads a LAMMPS dump file."""
         import pandas as pd
-
+        from io import StringIO
         if lammps_trj is None:
             lammps_trj = self.label + '.lammpstrj'
 
         f = paropen(lammps_trj, 'r')
-
-        while True:
-            line = f.readline()
-            if not line:
-                break
-
+        for line in f:
             # Read the file into memory
             if line.startswith('ITEM: TIMESTEP'):
-                _step_number = int(f.readline().strip())
+                _step_number = int(next(f).strip())
             elif line.startswith('ITEM: NUMBER OF ATOMS'):
-                n_atoms = int(f.readline().strip())
+                n_atoms = int(next(f).strip())
             elif line.startswith('ITEM: BOX BOUNDS'):
                 box_str = [next(f).rstrip().split(' ') for x in range(3)]
                 # box_df = pd.DataFrame(
                 #     box_str, columns=['lo', 'hi', 'tilt'], dtype=float)
             elif line.startswith('ITEM: ATOMS'):
-                atoms_str = [next(f).rstrip().split(' ')
-                             for x in range(n_atoms)]
-                atoms_df = pd.DataFrame(
-                    atoms_str, columns=line[12:].split(), dtype=float)
-
-                atoms_df.sort_values(by='id', inplace=True)
+                # atoms_str = [next(f).rstrip().split(' ')
+                #              for x in range(n_atoms)]
+                atoms_str = ''.join([next(f) for x in range(n_atoms)])
+                atoms_df = pd.read_csv(StringIO(line[12:] + atoms_str), delim_whitespace=True, index_col=0)
+                atoms_df.sort_index(inplace=True)
+                
+                #atoms_df.sort_values(by='id', inplace=True)
                 # Create appropriate atoms object
                 # Determine cell tilt for triclinic case
                 # if not box_df.tilt.isnull().values.any():
@@ -621,13 +617,10 @@ class LAMMPS:
                     rotation_lammps2ase = np.linalg.inv(self.prism.R)
 
                     type_atoms = self.atoms.get_atomic_numbers()
-
-                    positions_atoms = np.dot(
-                        np.array([atoms_df['x'], atoms_df['y'], atoms_df['z']]).T, rotation_lammps2ase)
-                    velocities_atoms = np.dot(np.array(
-                        [atoms_df['vx'], atoms_df['vy'], atoms_df['vz']]).T, rotation_lammps2ase)
-                    forces_atoms = np.dot(np.array(
-                        [atoms_df['fx'], atoms_df['fy'], atoms_df['fz']]).T, rotation_lammps2ase)
+                    cols = atoms_df.columns
+                    positions_atoms = np.dot(atoms_df.to_numpy()[:, cols.get_loc('x'):cols.get_loc('z')+1], rotation_lammps2ase)
+                    velocities_atoms = np.dot(atoms_df.to_numpy()[:, cols.get_loc('vx'):cols.get_loc('vz')+1], rotation_lammps2ase)
+                    forces_atoms = np.dot(atoms_df.to_numpy()[:, cols.get_loc('fx'):cols.get_loc('fz')+1], rotation_lammps2ase)
 
                 if set_atoms:
                     # assume periodic boundary conditions here (as in
