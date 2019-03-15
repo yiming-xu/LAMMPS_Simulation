@@ -145,8 +145,8 @@ class LAMMPS:
                     trajectory_out.write(tmp_atoms)
 
         # Initializing multiprocessing of dataframes
-        in_queue = Queue()
-        out_queue = Manager().Queue()
+        in_queue = Queue(maxsize=60)
+        out_queue = Manager().Queue(maxsize=60)
 
         write_progress = Value('L', 0)  # This is the NEXT step to be writen
         write_event = Event()

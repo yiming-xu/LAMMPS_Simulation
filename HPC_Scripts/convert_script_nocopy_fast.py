@@ -17,8 +17,6 @@ print("Original Max Threads:", mkl.get_max_threads())
 mkl.set_num_threads(n_cpus)
 print("New Max Threads:", mkl.get_max_threads())
 
-
-
 mol_file = file_name + ".extxyz"
 ase_traj_file = file_name + ".traj"
 
