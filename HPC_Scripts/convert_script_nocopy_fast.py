@@ -28,5 +28,5 @@ print("Writing ASE trajectory to ", ase_traj_file)
 calc.trajectory_out = Trajectory(ase_traj_file, 'w')
 
 print("Reading LAMMPS Trajectory from", lammps_traj_file)
-calc.read_lammps_trj(lammps_trj=lammps_traj_file, n_procs=n_cpus)
+calc.read_lammps_trj(lammps_trj=lammps_traj_file, n_cpus=n_cpus)
 calc.trajectory_out.close()
