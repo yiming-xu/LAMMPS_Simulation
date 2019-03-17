@@ -67,7 +67,7 @@ class LAMMPS:
         self.atoms = atoms.copy()
         self.prism = Prism(atoms.get_cell())
 
-    def read_lammps_trj(self, lammps_trj=None, n_procs=8):
+    def read_lammps_trj(self, lammps_trj=None, n_cpus=8):
         """Method which reads a LAMMPS dump file."""
 
         def df_producer(in_queue, out_queue, write_progress, write_event):
@@ -88,7 +88,8 @@ class LAMMPS:
                         write_event.wait(timeout=None)
 
                     write_event.clear()
-                    out_queue.put([atoms_df.sort_index(), step_number])
+                    atoms_df.sort_index(inplace=True)
+                    out_queue.put([atoms_df, step_number])
 
                     with write_progress.get_lock():
                         write_progress.value += 1
@@ -119,7 +120,7 @@ class LAMMPS:
             """
             write_counter = 0
 
-            while write_counter < n_procs-2:
+            while write_counter < n_procs:
                 msg = out_queue.get()
 
                 if isinstance(msg, str):
@@ -144,6 +145,9 @@ class LAMMPS:
                     tmp_atoms.set_velocities(velocities_atoms)
                     trajectory_out.write(tmp_atoms)
 
+        # Leave some processes empty
+        n_procs = n_cpus - 4
+
         # Initializing multiprocessing of dataframes
         in_queue = Queue(maxsize=60)
         out_queue = Manager().Queue(maxsize=60)
@@ -156,7 +160,7 @@ class LAMMPS:
 
         # Starts the processes for dataframe processing
         processes = [Process(target=df_producer, args=(
-            in_queue, out_queue, write_progress, write_event,)) for _ in range(n_procs-2)]
+            in_queue, out_queue, write_progress, write_event,)) for _ in range(n_procs)]
         # Start a process for read
         processes.append(Process(target=step_reader,
                                  args=(f, in_queue, n_procs,)))
