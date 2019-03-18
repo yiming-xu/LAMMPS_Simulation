@@ -335,10 +335,11 @@ class LAMMPS:
                 else:
                     f.write("{:14} {} \n".format(parameter, value).encode('utf-8'))
             elif default:
-                f.write("# Default values for {} used.\n".format(parameter).encode('utf-8'))
+                # f.write("# Default values for {} used.\n".format(parameter).encode('utf-8'))
                 f.write("{:14} {} \n".format(parameter, default).encode('utf-8'))
             else:
-                f.write('# !!!Parameter {} not found!\n'.format(parameter).encode('utf-8'))
+                # f.write('# !!!Parameter {} not found!\n'.format(parameter).encode('utf-8'))
+                pass
 
         def write_box_and_atoms():
             if self.keep_tmp_files:
