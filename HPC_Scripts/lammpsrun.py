@@ -568,126 +568,41 @@ class LAMMPS:
 
     def read_lammps_trj(self, lammps_trj=None, set_atoms=False):
         """Method which reads a LAMMPS dump file."""
+        import pandas as pd
+        from io import StringIO
         if lammps_trj is None:
             lammps_trj = self.label + '.lammpstrj'
 
         f = paropen(lammps_trj, 'r')
-        while True:
-            line = f.readline()
+        for line in f:
+            # Read the file into memory
+            if line.startswith('ITEM: TIMESTEP'):
+                _step_number = int(next(f).strip())
+            elif line.startswith('ITEM: NUMBER OF ATOMS'):
+                n_atoms = int(next(f).strip())
+            elif line.startswith('ITEM: BOX BOUNDS'):
+                box_str = [next(f).rstrip().split(' ') for x in range(3)]
+                # box_df = pd.DataFrame(
+                #     box_str, columns=['lo', 'hi', 'tilt'], dtype=float)
+            elif line.startswith('ITEM: ATOMS'):
+                # atoms_str = [next(f).rstrip().split(' ')
+                #              for x in range(n_atoms)]
+                atoms_str = ''.join([next(f) for x in range(n_atoms)])
+                atoms_df = pd.read_csv(StringIO(line[12:] + atoms_str), delim_whitespace=True, index_col=0)
+                atoms_df.sort_index(inplace=True)
+                
+                #atoms_df.sort_values(by='id', inplace=True)
+                # Create appropriate atoms object
+                # Determine cell tilt for triclinic case
+                # if not box_df.tilt.isnull().values.any():
+                #     # Assuming default order
+                #     xy = box_df.tilt[0]
+                #     xz = box_df.tilt[1]
+                #     yz = box_df.tilt[2]
 
-            if not line:
-                break
-
-            # TODO: extend to proper dealing with multiple steps in one
-            # trajectory file
-            if 'ITEM: TIMESTEP' in line:
-
-                n_atoms = 0
-                lo = []
-                hi = []
-                tilt = []
-                id = []
-                type = []
-                positions = []
-                velocities = []
-                forces = []
-
-            if 'ITEM: NUMBER OF ATOMS' in line:
-                line = f.readline()
-                n_atoms = int(line.split()[0])
-
-            if 'ITEM: BOX BOUNDS' in line:
-                # save labels behind "ITEM: BOX BOUNDS" in triclinic case
-                # (>=lammps-7Jul09)
-                tilt_items = line.split()[3:]
-                for i in range(3):
-                    line = f.readline()
-                    fields = line.split()
-                    lo.append(float(fields[0]))
-                    hi.append(float(fields[1]))
-                    if len(fields) >= 3:
-                        tilt.append(float(fields[2]))
-
-            if 'ITEM: ATOMS' in line:
-                # (reliably) identify values by labels behind "ITEM: ATOMS"
-                # - requires >=lammps-7Jul09
-                # create corresponding index dictionary before iterating over
-                # atoms to (hopefully) speed up lookups...
-                atom_attributes = {}
-                for (i, x) in enumerate(line.split()[2:]):
-                    atom_attributes[x] = i
-                for _n in range(n_atoms):
-                    line = f.readline()
-                    fields = line.split()
-                    id.append(int(fields[atom_attributes['id']]))
-                    type.append(int(fields[atom_attributes['type']]))
-                    positions.append([float(fields[atom_attributes[x]])
-                                      for x in ['x', 'y', 'z']])
-                    velocities.append([float(fields[atom_attributes[x]])
-                                       for x in ['vx', 'vy', 'vz']])
-                    forces.append([float(fields[atom_attributes[x]])
-                                   for x in ['fx', 'fy', 'fz']])
-                # Re-order items according to their 'id' since running in
-                # parallel can give arbitrary ordering.
-
-                id, type, positions, velocities, forces = zip(
-                    *sorted(zip(id, type, positions, velocities, forces)))
-
-                # determine cell tilt (triclinic case!)
-                if len(tilt) >= 3:
-                    # for >=lammps-7Jul09 use labels behind "ITEM: BOX BOUNDS"
-                    # to assign tilt (vector) elements ...
-                    if len(tilt_items) >= 3:
-                        xy = tilt[tilt_items.index('xy')]
-                        xz = tilt[tilt_items.index('xz')]
-                        yz = tilt[tilt_items.index('yz')]
-                    # ... otherwise assume default order in 3rd column
-                    # (if the latter was present)
-                    else:
-                        xy = tilt[0]
-                        xz = tilt[1]
-                        yz = tilt[2]
-                else:
-                    xy = xz = yz = 0
-                xhilo = (hi[0] - lo[0]) - xy - xz
-                yhilo = (hi[1] - lo[1]) - yz
-                zhilo = (hi[2] - lo[2])
-
-                # The simulation box bounds are included in each snapshot and
-                # if the box is triclinic (non-orthogonal), then the tilt
-                # factors are also printed; see the region prism command for
-                # a description of tilt factors.
-                # For triclinic boxes the box bounds themselves (first 2
-                # quantities on each line) are a true "bounding box" around
-                # the simulation domain, which means they include the effect of
-                # any tilt.
-                # [ http://lammps.sandia.gov/doc/dump.html , lammps-7Jul09 ]
-                #
-                # This *should* extract the lattice vectors that LAMMPS uses
-                # from the true "bounding box" printed in the dump file.
-                # It might fail in some cases (negative tilts?!) due to the
-                # MIN / MAX construction of these box corners:
-                #
-                #   void Domain::set_global_box()
-                #   [...]
-                #     if (triclinic) {
-                #       [...]
-                #       boxlo_bound[0] = MIN(boxlo[0],boxlo[0]+xy);
-                #       boxlo_bound[0] = MIN(boxlo_bound[0],boxlo_bound[0]+xz);
-                #       boxlo_bound[1] = MIN(boxlo[1],boxlo[1]+yz);
-                #       boxlo_bound[2] = boxlo[2];
-                #       #           boxhi_bound[0] = MAX(boxhi[0],boxhi[0]+xy);
-                #       boxhi_bound[0] = MAX(boxhi_bound[0],boxhi_bound[0]+xz);
-                #       boxhi_bound[1] = MAX(boxhi[1],boxhi[1]+yz);
-                #       boxhi_bound[2] = boxhi[2];
-                #     }
-                # [ lammps-7Jul09/src/domain.cpp ]
-                #
-                cell = [[xhilo, 0, 0], [xy, yhilo, 0], [xz, yz, zhilo]]
-
-                # These have been put into the correct order
-                cell_atoms = np.array(cell)
-                type_atoms = np.array(type)
+                # xhilo = (box_df.hi[0] - box_df.lo[0]) - xy - xz
+                # yhilo = (box_df.hi[1] - box_df.lo[1]) - yz
+                # zhilo = (box_df.hi[2] - box_df.lo[2])
 
                 if self.atoms:
                     cell_atoms = self.atoms.get_cell()
@@ -702,9 +617,10 @@ class LAMMPS:
                     rotation_lammps2ase = np.linalg.inv(self.prism.R)
 
                     type_atoms = self.atoms.get_atomic_numbers()
-                    positions_atoms = np.dot(positions, rotation_lammps2ase)
-                    velocities_atoms = np.dot(velocities, rotation_lammps2ase)
-                    forces_atoms = np.dot(forces, rotation_lammps2ase)
+                    cols = atoms_df.columns
+                    positions_atoms = np.dot(atoms_df.to_numpy()[:, cols.get_loc('x'):cols.get_loc('z')+1], rotation_lammps2ase)
+                    velocities_atoms = np.dot(atoms_df.to_numpy()[:, cols.get_loc('vx'):cols.get_loc('vz')+1], rotation_lammps2ase)
+                    forces_atoms = np.dot(atoms_df.to_numpy()[:, cols.get_loc('fx'):cols.get_loc('fz')+1], rotation_lammps2ase)
 
                 if set_atoms:
                     # assume periodic boundary conditions here (as in
