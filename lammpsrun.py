@@ -157,7 +157,7 @@ class LAMMPS:
 
     def get_forces(self, atoms):
         self.update(atoms)
-        return self.forces.copy()
+        return self.forces
 
     def get_stress(self, atoms):
         self.update(atoms)
@@ -326,6 +326,56 @@ class LAMMPS:
                         lammps_data=None):
         """Write a LAMMPS in_ file with run parameters and settings."""
 
+        def write_var(f, parameter, default=None):
+            if parameter in self.parameters:
+                value = self.parameters[parameter]
+                if isinstance(value, list):
+                    for v in value:
+                        f.write("{:14} {} \n".format(parameter, v).encode('utf-8'))
+                else:
+                    f.write("{:14} {} \n".format(parameter, value).encode('utf-8'))
+            elif default:
+                f.write("# Default values for {} used.\n".format(parameter).encode('utf-8'))
+                f.write("{:14} {} \n".format(parameter, default).encode('utf-8'))
+            else:
+                f.write('# !!!Parameter {} not found!\n'.format(parameter).encode('utf-8'))
+
+        def write_box_and_atoms():
+            if self.keep_tmp_files:
+                f.write('## Original ase cell\n'.encode('utf-8'))
+                f.write(''.join(['# {0:.16} {1:.16} {2:.16}\n'.format(*x)
+                                 for x in self.atoms.get_cell()]
+                                ).encode('utf-8'))
+            write_var(f, 'lattice', 'sc 1.0')
+            xhi, yhi, zhi, xy, xz, yz = self.prism.get_lammps_prism_str()
+            if self.always_triclinic or self.prism.is_skewed():
+                write_var(f, 'region', 'asecell prism 0.0 {0} 0.0 {1} 0.0 {2} {3} {4} {5} side in units box'.format(xhi, yhi, zhi, xy, xz, yz))
+            else:
+                write_var(f, 'region', 'asecell block 0.0 {0} 0.0 {1} 0.0 {2} side in units box'.format(xhi, yhi, zhi))
+
+            symbols = self.atoms.get_chemical_symbols()
+            if self.specorder is None:
+                # By default, atom types in alphabetic order
+                species = sorted(set(symbols))
+            else:
+                # By request, specific atom type ordering
+                species = self.specorder
+
+            n_atom_types = len(species)
+            species_i = dict([(s, i + 1) for i, s in enumerate(species)])
+
+            write_var(f, 'create_box', '{0} asecell'.format(n_atom_types))
+
+            f.write('\n# By default, atom types in alphabetic order\n'.encode('utf-8'))
+
+            for s, pos in zip(symbols, self.atoms.get_positions()):
+                if self.keep_tmp_files:
+                    f.write('# atom pos in ase cell: {0:.16} {1:.16} {2:.16}'
+                            '\n'.format(*tuple(pos)).encode('utf-8'))
+
+                write_var(f, 'create_atoms', '{0} single {1} {2} {3} units box\n'.format(
+                            *((species_i[s],) + self.prism.pos_to_lammps_fold_str(pos))))
+
         if isinstance(lammps_in, basestring):
             f = paropen(lammps_in, 'wb')
             close_in_file = True
@@ -343,183 +393,68 @@ class LAMMPS:
                  'variable\t data_file string "{1}"\n'
                  ).format(lammps_trj, lammps_data).encode('utf-8'))
 
-        parameters = self.parameters
-        if 'package' in parameters:
-            f.write(('\n'.join(['package\t {0}'.format(p)
-                                for p in parameters['package']]) +
-                     '\n').encode('utf-8'))
+        # Writing commands by category: https://lammps.sandia.gov/doc/Commands_category.html
+        # This is the general structure of how commands flow
+        # TODO: customization within each section with a flag
 
-        pbc = self.atoms.get_pbc()
+        # Initialization/Settings
+        f.write('\n # Initialization/Settings \n'.encode('utf-8'))
+        write_var(f, 'newton')
+        write_var(f, 'package')
+        write_var(f, 'units')
+        write_var(f, 'neighbor')
+        write_var(f, 'neigh_modify')
 
-        if 'units' in parameters:
-            f.write('units\t\t {0} \n'.format(
-                parameters['units']).encode('utf-8'))
-        else:
-            f.write('units\t\t metal \n'.encode('utf-8'))
+        # Atoms Settings
+        f.write('\n # Atoms \n'.encode('utf-8'))
+        write_var(f, 'atom_style', 'metal')
+        write_var(f, 'atom_modify')
+        write_var(f, 'boundary', '{0} {1} {2}'.format(*tuple('sp'[x] for x in self.atoms.get_pbc())))
 
-        if 'atom_style' in parameters:
-            f.write('atom_style\t {0} \n'.format(
-                parameters['atom_style']).encode('utf-8'))
-
-        if 'boundary' in parameters:
-            f.write('boundary\t {0} \n'.format(
-                parameters['boundary']).encode('utf-8'))
-        else:
-            f.write('boundary\t {0} {1} {2} \n'.format(
-                    *tuple('sp'[x] for x in pbc)).encode('utf-8'))
-        f.write('atom_modify\t sort 0 0.0 \n'.encode('utf-8'))
-
-        for key in ('neighbor', 'newton'):
-            if key in parameters:
-                f.write('{0}\t {1} \n'.format(
-                    key, parameters[key]).encode('utf-8'))
-        f.write('\n'.encode('utf-8'))
-
-        if 'neigh_modify' in parameters:
-            f.write(('\n'.join(['neigh_modify\t {0}'.format(p)
-                                for p in parameters['neigh_modify']]) +
-                     '\n').encode('utf-8'))
-
-        # If self.no_lammps_data,
-        # write the simulation box and the atoms
+        # If not using data file, write the simulation box and the atoms
+        f.write('\n # Basic Simulation Box and Atoms \n'.encode('utf-8'))
         if self.no_data_file:
-            if self.keep_tmp_files:
-                f.write('## Original ase cell\n'.encode('utf-8'))
-                f.write(''.join(['# {0:.16} {1:.16} {2:.16}\n'.format(*x)
-                                 for x in self.atoms.get_cell()]
-                                ).encode('utf-8'))
-
-            f.write('lattice\t\t sc 1.0\n'.encode('utf-8'))
-            xhi, yhi, zhi, xy, xz, yz = self.prism.get_lammps_prism_str()
-            if self.always_triclinic or self.prism.is_skewed():
-                f.write('region\t\t asecell prism 0.0 {0} 0.0 {1} 0.0 {2} '
-                        ''.format(xhi, yhi, zhi).encode('utf-8'))
-                f.write('{0} {1} {2} side in units box\n'
-                        ''.format(xy, xz, yz).encode('utf-8'))
-            else:
-                f.write(('region\t\t asecell block 0.0 {0} 0.0 {1} 0.0 {2} '
-                         'side in units box\n').format(
-                             xhi, yhi, zhi).encode('utf-8'))
-
-            symbols = self.atoms.get_chemical_symbols()
-            if self.specorder is None:
-                # By default, atom types in alphabetic order
-                species = sorted(set(symbols))
-            else:
-                # By request, specific atom type ordering
-                species = self.specorder
-
-            n_atom_types = len(species)
-            species_i = dict([(s, i + 1) for i, s in enumerate(species)])
-
-            f.write('create_box\t {0} asecell\n'.format(
-                n_atom_types).encode('utf-8'))
-
-            f.write(
-                '\n# By default, atom types in alphabetic order\n'.encode('utf-8'))
-
-            for s, pos in zip(symbols, self.atoms.get_positions()):
-                if self.keep_tmp_files:
-                    f.write('# atom pos in ase cell: {0:.16} {1:.16} {2:.16}'
-                            '\n'.format(*tuple(pos)).encode('utf-8'))
-                f.write('create_atoms {0} single {1} {2} {3} units box\n'
-                        ''.format(
-                            *((species_i[s],) +
-                              self.prism.pos_to_lammps_fold_str(pos))
-                        ).encode('utf-8'))
-
-        # if NOT self.no_lammps_data, then simply refer to the data-file
+            write_box_and_atoms()
         else:
-            f.write('read_data\t {0}\n'.format(lammps_data).encode('utf-8'))
+            write_var(f, 'read_data', lammps_data)
 
-        if 'replicate' in parameters:
-            f.write('\nreplicate\t {0}\n'.format(
-                parameters['neigh_modify']).encode('utf-8'))
+        # Additional Setup Simulation Box and Atoms Setup
+        f.write('\n # Additional Setup Simulation Box and Atoms Setup \n'.encode('utf-8'))
+        write_var(f, 'region')
+        write_var(f, 'group')
+        write_var(f, 'mass')
+        write_var(f, 'velocity')
+        write_var(f, 'replicate')
 
-        # Write interaction stuff
-        f.write('\n### interactions \n'.encode('utf-8'))
-        if ('pair_style' in parameters) and ('pair_coeff' in parameters):
-            pair_style = parameters['pair_style']
-            f.write('pair_style\t {0} \n'.format(pair_style).encode('utf-8'))
-            if 'pair_modify' in parameters:
-                for pair_modify in parameters['pair_modify']:
-                    f.write('pair_modify\t {0} \n'
-                            ''.format(pair_modify).encode('utf-8'))
-            if 'kspace_style ' in parameters:
-                f.write('kspace_style \t {0} \n'.format(
-                    parameters['kspace_style']).encode('utf-8'))
+        # Interaction Setup
+        f.write('\n # Interactions Setup \n'.encode('utf-8'))
+        write_var(f, 'pair_style')
+        write_var(f, 'pair_coeff')
+        write_var(f, 'pair_modify')
+        write_var(f, 'kspace_style')
 
-            for pair_coeff in parameters['pair_coeff']:
-                f.write('pair_coeff\t {0} \n'
-                        ''.format(pair_coeff).encode('utf-8'))
+        write_var(f, 'bond_style')
+        write_var(f, 'bond_coeff')
 
-        if ('bond_style' in parameters) and ('bond_coeff' in parameters):
-            bond_style = parameters['bond_style']
-            f.write('bond_style\t {0} \n'.format(bond_style).encode('utf-8'))
-            for bond_coeff in parameters['bond_coeff']:
-                f.write('bond_coeff\t {0} \n'
-                        ''.format(bond_coeff).encode('utf-8'))
+        write_var(f, 'angle_style')
+        write_var(f, 'angle_coeff')
 
-        if ('angle_style' in parameters) and ('angle_coeff' in parameters):
-            angle_style = parameters['angle_style']
-            f.write('angle_style\t {0} \n'.format(angle_style).encode('utf-8'))
-            for angle_coeff in parameters['angle_coeff']:
-                f.write('angle_coeff\t {0} \n'
-                        ''.format(angle_coeff).encode('utf-8'))
+        # Simulation Run Setup
+        f.write('\n # Simulation Run Setup \n'.encode('utf-8'))
+        write_var(f, 'fix', 'fix_nve all nve')
+        write_var(f, 'dump',  'dump_all all custom {1} "{0}" id type x y z vx vy vz fx fy fz'.format(lammps_trj, self.dump_period))
 
-        if 'mass' in parameters:
-            for mass in parameters['mass']:
-                f.write('mass\t\t {0} \n'.format(mass).encode('utf-8'))
+        write_var(f, 'thermo_style', 'custom')
+        write_var(f, 'thermo_modify', 'flush yes')
+        write_var(f, 'thermo', '1 {0}'.format(self._custom_thermo_args))
 
-        if 'velocity' in parameters:
-            f.write(('\n'.join(['velocity\t {0}'.format(p)
-                                for p in parameters['velocity']]) +
-                     '\n').encode('utf-8'))
+        write_var(f, 'timestep', '1')
 
-        if 'group' in parameters:
-            f.write(('\n'.join(['group\t\t {0}'.format(p)
-                                for p in parameters['group']]) +
-                     '\n').encode('utf-8'))
+        write_var(f, 'min_style')
+        write_var(f, 'min_modify')
+        write_var(f, 'minimize')
 
-        f.write('\n### run\n'.encode('utf-8'))
-
-        if 'fix' in parameters:
-            f.write(('\n'.join(['fix\t\t\t {0}'.format(p)
-                                for p in parameters['fix']]) +
-                     '\n').encode('utf-8'))
-        else:
-            f.write('fix\t\t\t fix_nve all nve\n'.encode('utf-8'))
-
-        f.write(
-            'dump\t\t dump_all all custom {1} "{0}" id type x y z vx vy vz '
-            'fx fy fz\n'
-            ''.format(lammps_trj, self.dump_period).encode('utf-8'))
-        f.write('thermo_style custom {0}\n'
-                'thermo_modify flush yes\n'
-                'thermo\t\t 1\n'.format(
-                    ' '.join(self._custom_thermo_args)).encode('utf-8'))
-
-        if 'timestep' in parameters:
-            f.write('timestep\t {0}\n'.format(
-                parameters['timestep']).encode('utf-8'))
-
-        if 'minimize' in parameters:
-            if 'min_style' in parameters:
-                f.write('min_style\t {0}\n'.format(
-                    parameters['min_style']).encode('utf-8'))
-            if 'min_modify' in parameters:
-                f.write('min_modify\t {0}\n'.format(
-                    parameters['min_modify']).encode('utf-8'))
-
-            f.write(('\n'.join(['minimize\t {0}'.format(p)
-                                for p in parameters['minimize']]) +
-                     '\n').encode('utf-8'))
-
-        if 'run' in parameters:
-            f.write('run\t\t\t {0}\n'.format(
-                parameters['run']).encode('utf-8'))
-        if not (('minimize' in parameters) or ('run' in parameters)):
-            f.write('run\t\t\t 0\n'.encode('utf-8'))
+        write_var(f, 'run')
 
         f.write('print "{0}" \n'.format(CALCULATION_END_MARK).encode('utf-8'))
         # Force LAMMPS to flush log
@@ -581,7 +516,7 @@ class LAMMPS:
             elif line.startswith('ITEM: NUMBER OF ATOMS'):
                 n_atoms = int(next(f).strip())
             elif line.startswith('ITEM: BOX BOUNDS'):
-                box_str = [next(f).rstrip().split(' ') for x in range(3)]
+                _box_str = [next(f).rstrip().split(' ') for x in range(3)]
                 # box_df = pd.DataFrame(
                 #     box_str, columns=['lo', 'hi', 'tilt'], dtype=float)
             elif line.startswith('ITEM: ATOMS'):
