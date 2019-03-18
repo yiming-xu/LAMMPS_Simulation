@@ -447,7 +447,7 @@ class LAMMPS:
 
         write_var(f, 'thermo_style', 'custom')
         write_var(f, 'thermo_modify', 'flush yes')
-        write_var(f, 'thermo', '1 {0}'.format(self._custom_thermo_args))
+        write_var(f, 'thermo', '1 {0}'.format(self._custom_thermo_mark))
 
         write_var(f, 'timestep', '1')
 
