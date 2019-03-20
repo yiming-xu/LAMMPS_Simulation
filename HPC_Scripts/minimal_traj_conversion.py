@@ -121,7 +121,7 @@ class LAMMPS:
             write_counter = 0
 
             while write_counter < n_procs:
-                msg = out_queue.get()
+                msg = out_queue.get(timeout=1800) # time out in 30 minutes if nothing is written
 
                 if isinstance(msg, str):
                     write_counter += 1
