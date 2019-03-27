@@ -296,7 +296,7 @@ def rotate_plot_atoms(atoms, radii=1.0, rotation_list=None, interval=40, jsHTML=
     return ani
 
 
-def reaxff_params_generator(sim_box, job_name, input_fd="", write_input=False, **kwargs):
+def reaxff_params_generator(sim_box, job_name, input_fd="", write_input=False, always_triclinic=True, **kwargs):
     from lammpsrun import LAMMPS, write_lammps_data
 
     list_of_elements = sorted(list(set(sim_box.get_chemical_symbols())))
@@ -311,13 +311,10 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write_input=False, *
         # Initialization
         "units": "real",
         "atom_style": "charge",
-        # "velocity": ["all create 300.0 1050027 rot yes dist gaussian"],
 
         # Forcefield definition
         "pair_style": "reax/c NULL safezone 16",
         "pair_coeff": ['* * ' + '{0} '.format(potential) + ' '.join(list_of_elements)],
-        "neighbor": "2.0 bin",
-        "neighbor_modify": "delay 10 check yes",
 
         # Run and Minimization
         # "run": "1",
@@ -331,7 +328,7 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write_input=False, *
 
     write_lammps_data(os.path.join(input_fd, job_name + ".lammpsdata",),
                       sim_box, charges=True, force_skew=True)
-    calc = LAMMPS(parameters=reaxff_params, always_triclinic=True)
+    calc = LAMMPS(parameters=reaxff_params, always_triclinic=always_triclinic)
     sim_box.set_calculator(calc)
     if write_input:
         write(os.path.join(input_fd, job_name + ".extxyz",),
@@ -339,7 +336,7 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write_input=False, *
         calc.write_lammps_in(lammps_in=os.path.join(input_fd, "{0}.lammpsin".format(job_name)),
                              lammps_trj="{0}.lammpstrj".format(job_name),
                              lammps_data="{0}.lammpsdata".format(job_name))
-
+    calc.clean()
     return calc
 
 
