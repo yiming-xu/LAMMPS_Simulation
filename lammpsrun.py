@@ -445,9 +445,9 @@ class LAMMPS:
         write_var(f, 'fix', 'fix_nve all nve')
         write_var(f, 'dump',  'dump_all all custom {1} "{0}" id type x y z vx vy vz fx fy fz'.format(lammps_trj, self.dump_period))
 
-        write_var(f, 'thermo_style', 'custom')
+        write_var(f, 'thermo_style', 'custom {0}'.format(' '.join(self._custom_thermo_args)))
         write_var(f, 'thermo_modify', 'flush yes')
-        write_var(f, 'thermo', '1 {0}'.format(self._custom_thermo_mark))
+        write_var(f, 'thermo', '1')
 
         write_var(f, 'timestep', '1')
 
