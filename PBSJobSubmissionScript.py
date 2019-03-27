@@ -81,7 +81,7 @@ class PBS_Submitter:
             # Need to treat the ones that are intrinsically list differently
             if k in ["modules", "job_commands", "source_files"]:
                 # If it is not a 2D list of commands (a 1D list for each job)
-                if not all([isinstance(x, list) for x in self.params[k]]) :
+                if not all([isinstance(x, list) for x in self.params[k]]):
                     self.params[k] = [self.params[k]]*self.no_of_jobs
 
             else:
@@ -91,6 +91,9 @@ class PBS_Submitter:
 
     def run(self):
         "Iterates through and runs all the jobs."
+        # Sets TMPDIR environment
+        os.environ['TMPDIR'] = self.ephemeral_path
+
         pbs_out = []
         pbs_err = []
 
