@@ -72,7 +72,7 @@ class LAMMPS:
 
         def df_producer(in_queue, out_queue, write_progress, write_event):
             while True:
-                step_str = in_queue.get(timeout=1800)
+                step_str = in_queue.get()
 
                 if step_str == 'DONE':
                     out_queue.put('DONE')
