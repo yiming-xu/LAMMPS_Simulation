@@ -99,19 +99,22 @@ class LAMMPS:
             """ This function reads 1 step of the trajectory file and sends it to
             in_queue to be further processed
             """
-            for line in f:
-                assert line.startswith('ITEM: TIMESTEP')
-                _step_number = int(next(f).strip())
-                assert next(f).startswith('ITEM: NUMBER OF ATOMS')
-                n_atoms = int(next(f).strip())
-                assert next(f).startswith('ITEM: BOX BOUNDS')
-                box_str = [next(f).rstrip().split(' ') for x in range(3)]
-                assert next(f).startswith('ITEM: ATOMS')
-                atoms_str = ''.join([next(f) for x in range(n_atoms)])
+            try:
+                for line in f:
+                    assert line.startswith('ITEM: TIMESTEP')
+                    _step_number = int(next(f).strip())
+                    assert next(f).startswith('ITEM: NUMBER OF ATOMS')
+                    n_atoms = int(next(f).strip())
+                    assert next(f).startswith('ITEM: BOX BOUNDS')
+                    box_str = [next(f).rstrip().split(' ') for x in range(3)]
+                    assert next(f).startswith('ITEM: ATOMS')
+                    atoms_str = ''.join([next(f) for x in range(n_atoms)])
 
-                # Add these information to in_queue
-                in_queue.put([_step_number, n_atoms, box_str, atoms_str])
-
+                    # Add these information to in_queue
+                    in_queue.put([_step_number, n_atoms, box_str, atoms_str])
+            except Exception as e:
+                print(e)
+                [in_queue.put('DONE') for _ in range(n_procs)]
             [in_queue.put('DONE') for _ in range(n_procs)]
 
         def step_writer(trajectory_out, out_queue, n_procs):
