@@ -51,7 +51,7 @@ class bonds_analysis:
 
         def df_producer(in_queue, out_queue, write_progress, write_event):
             while True:
-                step_str = in_queue.get(timeout=1800)
+                step_str = in_queue.get()
 
                 if isinstance(step_str, str):
                     out_queue[0].put('DONE')
@@ -116,18 +116,22 @@ class bonds_analysis:
             in_queue to be further processed
             """
             step_count = 0
-            for line in f:
-                _step_number = int(line.split()[-1])
-                assert next(f).startswith('#')
-                n_atoms = int(next(f).split()[-1])
-                assert all([next(f).startswith('#') for _ in range(4)])
-                
-                # Read the whole step and add to in_queue
-                in_queue.put((step_count, [next(f).split()
-                                            for _ in range(n_atoms)]))
-                # Each step ends with '#'
-                assert next(f).startswith('#')
-                step_count += 1
+            try:
+                for line in f:
+                    _step_number = int(line.split()[-1])
+                    assert next(f).startswith('#')
+                    n_atoms = int(next(f).split()[-1])
+                    assert all([next(f).startswith('#') for _ in range(4)])
+                    
+                    # Read the whole step and add to in_queue
+                    in_queue.put((step_count, [next(f).split()
+                                                for _ in range(n_atoms)]))
+                    # Each step ends with '#'
+                    assert next(f).startswith('#')
+                    step_count += 1
+            except Exception as e:
+                print(e)
+                [in_queue.put('DONE') for _ in range(n_procs)]
 
             # Poison pill when there is no more line to read
             [in_queue.put('DONE') for _ in range(n_procs)]
@@ -140,7 +144,7 @@ class bonds_analysis:
             write_counter = 0
             atoms_store = pd.HDFStore(bond_out+'_atoms.hdf5', mode='w')
             while write_counter < n_procs:
-                msg = out_queue.get(timeout=1800)
+                msg = out_queue.get()
                 
                 if isinstance(msg, str):
                     write_counter += 1
@@ -161,7 +165,7 @@ class bonds_analysis:
             write_counter = 0
             connectivity_store = pd.HDFStore(bond_out+'_connectivity.hdf5', mode='w')
             while write_counter < n_procs:
-                msg = out_queue.get(timeout=1800)
+                msg = out_queue.get()
                 
                 if isinstance(msg, str):
                     write_counter += 1
