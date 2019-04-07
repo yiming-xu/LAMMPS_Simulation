@@ -69,11 +69,11 @@ class LAMMPS:
 
     def read_lammps_trj(self, lammps_trj=None, n_cpus=8):
         """Method which reads a LAMMPS dump file."""
-
+        # import time
         def df_producer(in_queue, out_queue, write_progress, write_event):
             while True:
                 step_str = in_queue.get()
-
+                # start_time = time.time()
                 if step_str == 'DONE':
                     out_queue.put('DONE')
                     break
@@ -94,13 +94,16 @@ class LAMMPS:
                     with write_progress.get_lock():
                         write_progress.value += 1
                     write_event.set()
+                # print("df_producer time taken: {}".format(time.time() - start_time))
 
         def step_reader(f, in_queue, n_procs):
             """ This function reads 1 step of the trajectory file and sends it to
             in_queue to be further processed
             """
+            read_count = 0
             try:
                 for line in f:
+                    # start_time = time.time()
                     assert line.startswith('ITEM: TIMESTEP')
                     _step_number = int(next(f).strip())
                     assert next(f).startswith('ITEM: NUMBER OF ATOMS')
@@ -111,10 +114,13 @@ class LAMMPS:
                     atoms_str = ''.join([next(f) for x in range(n_atoms)])
 
                     # Add these information to in_queue
-                    in_queue.put([_step_number, n_atoms, box_str, atoms_str])
+                    in_queue.put([read_count, n_atoms, box_str, atoms_str])
+                    read_count += 1
+                    # print("step_reader time taken: {}".format(time.time() - start_time))
             except Exception as e:
                 print(e)
                 [in_queue.put('DONE') for _ in range(n_procs)]
+
             [in_queue.put('DONE') for _ in range(n_procs)]
 
         def step_writer(trajectory_out, out_queue, n_procs):
@@ -124,8 +130,8 @@ class LAMMPS:
             write_counter = 0
 
             while write_counter < n_procs:
-                msg = out_queue.get(timeout=1800) # time out in 30 minutes if nothing is written
-
+                msg = out_queue.get() # time out in 30 minutes if nothing is written
+                # start_time = time.time()
                 if isinstance(msg, str):
                     write_counter += 1
                 else:
@@ -147,7 +153,7 @@ class LAMMPS:
                                       cell=cell_atoms)
                     tmp_atoms.set_velocities(velocities_atoms)
                     trajectory_out.write(tmp_atoms)
-
+                # print("step_writer time taken: {}".format(time.time() - start_time))
         # Leave some processes empty
         n_procs = n_cpus - 4
 
