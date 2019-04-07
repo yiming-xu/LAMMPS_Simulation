@@ -296,7 +296,7 @@ def rotate_plot_atoms(atoms, radii=1.0, rotation_list=None, interval=40, jsHTML=
     return ani
 
 
-def reaxff_params_generator(sim_box, job_name, input_fd="", write_input=False, always_triclinic=True, **kwargs):
+def reaxff_params_generator(sim_box, job_name, input_fd="", write_input=False, always_triclinic=True, dump_period=1, **kwargs):
     from lammpsrun import LAMMPS, write_lammps_data
 
     list_of_elements = sorted(list(set(sim_box.get_chemical_symbols())))
@@ -329,6 +329,7 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write_input=False, a
     write_lammps_data(os.path.join(input_fd, job_name + ".lammpsdata",),
                       sim_box, charges=True, force_skew=True)
     calc = LAMMPS(parameters=reaxff_params, always_triclinic=always_triclinic)
+    calc.dump_period = dump_period
     sim_box.set_calculator(calc)
     if write_input:
         write(os.path.join(input_fd, job_name + ".extxyz",),
@@ -367,7 +368,7 @@ def get_coordination_number(sim_box, atom_index, cut_off=1.0, vdw_cut_off=1.0, c
 
 
 def identify_connection(i, j, atom_index, connections=None):
-    """Given a neighbor_list i, j, identifies all indices connected to atom_index"""
+    """Given a neighbor_list i, j, identifies all indices connected to atom_index recursively"""
     if not connections:
         connections = [atom_index]
 
@@ -405,13 +406,21 @@ def replace_molecule(sim_box, source_index, new_mol, cut_off=1.0, seed=None):
 
     i, j = nl_cutoff_cov_vdw(new_box, cut_off)
 
-    mol_to_delete_indices = identify_connection(i, j, atom_index=source_index)
-    mol_to_delete_COM = new_box[mol_to_delete_indices].get_center_of_mass()
+    if isinstance(source_index, int):
+        mol_to_delete_indices = [identify_connection(i, j, atom_index=source_index)]
+    else: # assuming source_index is list-like
+        mol_to_delete_indices = [identify_connection(i, j, atom_index=x) for x in source_index]
 
-    new_mol.translate(mol_to_delete_COM)
-    del new_box[mol_to_delete_indices]
+    mol_to_delete_COM = [new_box[x].get_center_of_mass() for x in mol_to_delete_indices]
 
-    new_box.extend(new_mol)
+    for com in mol_to_delete_COM:
+        add_mol = new_mol.copy()
+        add_mol.translate(com)
+        new_box.extend(add_mol)
+    
+    flat_list = [item for sublist in mol_to_delete_indices for item in sublist]
+    del new_box[flat_list]
+
     new_box.set_pbc(old_pbc)
 
     return new_box
