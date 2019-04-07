@@ -92,7 +92,7 @@ class PBS_Submitter:
     def run(self):
         "Iterates through and runs all the jobs."
         # Sets TMPDIR environment
-        os.environ['TMPDIR'] = self.ephemeral_path
+        os.environ['TMPDIR'] = r"/rds/general/ephemeral/user/yx6015/ephemeral/"
 
         pbs_out = []
         pbs_err = []
@@ -105,7 +105,7 @@ class PBS_Submitter:
                          stdout=PIPE, stderr=PIPE, close_fds=True)
 
             # Starting PBS Directives
-            proc.stdin.write("#!/bin/bash\n".encode('utf-8'))
+            # proc.stdin.write("#!/bin/bash\n".encode('utf-8'))
             proc.stdin.write(
                 "#PBS -N {0}\n".format(self.params['job_names'][job_no]).encode('utf-8'))
             proc.stdin.write(
@@ -130,8 +130,10 @@ class PBS_Submitter:
 
             # Copying input files (*.in) from submission directory to temporary directory for job
             for source_file in self.params['source_files'][job_no]:
-                proc.stdin.write("cp {0} . \n".format(
-                    source_file).encode('utf-8'))
+                if self.params['proc_nodes'][job_no] == 1:
+                    proc.stdin.write("cp {0} $TMPDIR \n".format(source_file).encode('utf-8'))
+                else:
+                    proc.stdin.write("pbsdsh2 cp {0} $TMPDIR \n".format(source_file).encode('utf-8'))
 
             # Starting job with mpiexec, it will pick up assigned cores automatically
             for command in self.params['job_commands'][job_no]:
@@ -140,8 +142,10 @@ class PBS_Submitter:
             # Copy output back to directory in $HOME
             proc.stdin.write(
                 "mkdir $EPHEMERAL/$PBS_JOBID \n".encode('utf-8'))
-            proc.stdin.write(
-                "cp * $EPHEMERAL/$PBS_JOBID/ \n".encode('utf-8'))
+            if self.params['proc_nodes'][job_no] == 1:
+                proc.stdin.write("cp $TMPDIR/* $EPHEMERAL/$PBS_JOBID/ \n".encode('utf-8'))
+            else:
+                proc.stdin.write("pbsdsh2 cp $TMPDIR/'*' $EPHEMERAL/$PBS_JOBID/ \n".encode('utf-8'))
             proc.stdin.write(
                 "qstat -f $PBS_JOBID \n".encode('utf-8'))
             # Print your job and the system response to the screen as it's submitted
