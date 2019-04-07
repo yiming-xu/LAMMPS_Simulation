@@ -341,7 +341,7 @@ class LAMMPS:
                 # f.write('# !!!Parameter {} not found!\n'.format(parameter).encode('utf-8'))
                 pass
 
-        def write_box_and_atoms():
+        def write_box_and_atoms(f):
             if self.keep_tmp_files:
                 f.write('## Original ase cell\n'.encode('utf-8'))
                 f.write(''.join(['# {0:.16} {1:.16} {2:.16}\n'.format(*x)
@@ -415,7 +415,7 @@ class LAMMPS:
         # If not using data file, write the simulation box and the atoms
         f.write('\n # Basic Simulation Box and Atoms \n'.encode('utf-8'))
         if self.no_data_file:
-            write_box_and_atoms()
+            write_box_and_atoms(f)
         else:
             write_var(f, 'read_data', lammps_data)
 
@@ -450,11 +450,12 @@ class LAMMPS:
         write_var(f, 'thermo', '1')
 
         write_var(f, 'timestep', '1')
+        write_var(f, 'restart')
 
         write_var(f, 'min_style')
         write_var(f, 'min_modify')
         write_var(f, 'minimize')
-
+        
         write_var(f, 'run')
 
         f.write('print "{0}" \n'.format(CALCULATION_END_MARK).encode('utf-8'))
