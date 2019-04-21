@@ -8,7 +8,7 @@
 #
 #  Parameters description:
 #
-#  Combined fe_o_water with new water and fe_o_c's bonds2019-02-21 13:14:24.282272#
+#  Combined fe_o_water with new water and fe_o_c's bonds2019-04-21 09:44:26.149347#
 #  Cutoffs for VDW & Coulomb terms
 #
 reaxFFvdwcutoff      10.0000
@@ -235,3 +235,8 @@ O  core C  core O  core C  core  -1.1390  78.0747  -0.0964  -4.5172  -3.0000
 O  core C  core O  core H  core  -2.5000  70.3345  -1.0000  -5.5315  -3.0000 
 O  core C  core O  core O  core  -0.1583  20.0000   1.5000  -9.0000  -2.0000 
 O  core O  core O  core O  core  -2.5000  -4.0000   1.0000  -2.5000  -1.0000 
+X  core C  core C  core X  core   0.0000  50.0000   0.3000  -4.0000  -2.0000 
+X  core C  core H  core X  core   0.0000   0.0000   0.0000   0.0000   0.0000 
+X  core H  core H  core X  core   0.0000   0.0000   0.0000   0.0000   0.0000 
+X  core H  core O  core X  core   0.0000   0.1000   0.0200  -2.5415   0.0000 
+X  core O  core O  core X  core   0.5511  25.4150   1.1330  -5.1903  -1.0000 
