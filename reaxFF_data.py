@@ -358,8 +358,10 @@ class reaxFF_data:
         angles_df.set_index('symbols', inplace=True)
 
         torsions = []
-        for torsion in product(self.species, repeat=4):
+        tor_species = self.species + ['X']
+        for torsion in product(tor_species, repeat=4):
             if torsion[::-1] not in torsions:
+                # if torsion[1] != 'X' and torsion[2] != 'X':
                 torsions.append('-'.join(torsion))
         torsions_df = pd.DataFrame(columns=self._torkeys)
         torsions_df['symbols'] = torsions
