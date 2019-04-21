@@ -388,11 +388,8 @@ class LAMMPS:
         if self.keep_tmp_files:
             f.write('# (written by ASE)\n'.encode('utf-8'))
 
-        # Write variables
-        f.write(('clear\n'
-                 'variable\t dump_file string "{0}"\n'
-                 'variable\t data_file string "{1}"\n'
-                 ).format(lammps_trj, lammps_data).encode('utf-8'))
+        # Start
+        f.write(('clear\n').format(lammps_trj, lammps_data).encode('utf-8'))
 
         # Writing commands by category: https://lammps.sandia.gov/doc/Commands_category.html
         # This is the general structure of how commands flow
