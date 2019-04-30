@@ -301,7 +301,7 @@ def rotate_plot_atoms(atoms, radii=1.0, rotation_list=None, interval=40, jsHTML=
 def trajectory_convert(ephemeral_out_dir, job_names):
     from PBSJobSubmissionScript import PBS_Submitter
 
-    convert_commands = [["timeout 11h python convert_script_nocopy_fast.py {} {} 32".format(y, os.path.join(ephemeral, x, y+'.lammpstrj'))] for x, y in zip(ephemeral_out_dir, job_names)]
+    convert_commands = [["timeout 23h python convert_script_nocopy_fast.py {} {} 32".format(y, os.path.join(ephemeral, x, y+'.lammpstrj'))] for x, y in zip(ephemeral_out_dir, job_names)]
     convert_source_files = [[os.path.join(ephemeral, x, y+".extxyz"),
                              os.path.join(convert_scripts_dir, "convert_script_nocopy_fast.py"),
                              os.path.join(convert_scripts_dir, "minimal_traj_conversion.py")] for x, y in zip(job_names, ephemeral_out_dir)]
@@ -309,7 +309,7 @@ def trajectory_convert(ephemeral_out_dir, job_names):
     convert_PBS = PBS_Submitter(job_names=convert_names,
                                 job_commands=convert_commands,
                                 modules=["anaconda3/personal"],
-                                walltime="12:00:00",
+                                walltime="24:00:00",
                                 proc_nodes=1,
                                 proc_cpus=32, #mpiprocs x threads = cpus
                                 proc_mpiprocs=32, 
@@ -341,10 +341,9 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write_input=False, a
 
     list_of_elements = sorted(list(set(sim_box.get_chemical_symbols())))
 
-    if 'potential' in kwargs.keys():
-        potential = kwargs['potential']
-    else:
-        potential = 'ffield.reax.Fe_O_C_H_combined'
+    potential = kwargs['potential']
+    if isinstance(potential, str):
+        potential = [potential]
 
     # Default Parameters
     reaxff_params = {
@@ -354,7 +353,7 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write_input=False, a
 
         # Forcefield definition
         "pair_style": "reax/c NULL safezone 16",
-        "pair_coeff": ['* * ' + '{0} '.format(potential) + ' '.join(list_of_elements)],
+        "pair_coeff": ['* * ' + '{0} '.format(x) + ' '.join(list_of_elements) for x in potential],
 
         # Run and Minimization
         # "run": "1",
