@@ -39,7 +39,7 @@ DATE: 2018/07 potential for Fe-C-O interactions fitted by wenxiaodong Group  DOI
     5.0000 !Molecular energy (not used)                                         
     0.0000 !Molecular energy (not used)                                         
     0.7903 !Valency angle conjugation parameter                                 
-  3    !Nr of atoms; cov.r; valency;a.m;Rvdw;Evdw;gammaEEM;cov.r2;
+  3    ! Nr of atoms; cov.r; valency;a.m;Rvdw;Evdw;gammaEEM;cov.r2;
             alfa;gammavdW;valency;Eunder;Eover;chiEEM;etaEEM;n.u.
             cov r3;Elp;Heat inc.;n.u.;n.u.;n.u.;n.u.
             ov/un;val1;n.u.;val3,vval4
