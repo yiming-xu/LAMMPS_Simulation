@@ -8,7 +8,7 @@
 #
 #  Parameters description:
 #
-#  Combined fe_o_water with new water and fe_o_c's bonds-off_diagonal2019-04-21 09:44:25.830200#
+#  Combined fe_o_water with new water and fe_o_c's bonds-off_diagonal2019-05-14 14:09:04.977054#
 #  Cutoffs for VDW & Coulomb terms
 #
 reaxFFvdwcutoff      10.0000
@@ -155,6 +155,7 @@ O  core H  core O  core  75.6935  50.0000   2.0000   1.1680   1.0000
 O  core H  core Fe core  59.4556  10.2025   0.7481   1.0000   1.4521 
 Fe core H  core H  core  34.1965   6.6782   6.5943   1.5365   1.3895 
 Fe core H  core O  core  34.0653  20.1868   4.7461   1.6752   0.1000 
+Fe core H  core Fe core  21.2590   6.5954   0.9951   1.0000   2.8006 
 C  core O  core O  core  76.9627  44.2852   2.4177   2.7392   1.6334 
 C  core O  core Fe core  18.8567  24.3753   3.9647   1.5314   0.1000 
 H  core O  core O  core   0.0000  11.8475   2.7571   2.9000   0.0000 
@@ -219,8 +220,8 @@ C  core C  core C  core H  core  -0.2500  29.2131   0.2945  -4.9581  -2.1802
 C  core C  core C  core O  core   1.2799  20.7787  -0.5249  -2.5000  -1.0000 
 C  core C  core O  core C  core   0.4816  19.6316  -0.0057  -2.5000  -1.0000 
 C  core C  core O  core H  core   1.2044  80.0000  -0.3139  -6.1481  -1.0000 
-C  core C  core O  core O  core  -0.0002  20.1851   0.1601  -9.0000  -2.0000 
-C  core O  core O  core C  core   0.0002  80.0000  -1.5000  -4.4848  -2.0000 
+C  core C  core O  core O  core  -0.3566  10.0000   0.0816  -2.6110  -1.9631 
+C  core O  core O  core C  core   1.1637 -17.3637   0.5459  -3.6005  -2.6938 
 C  core O  core O  core H  core  -2.1289  12.8382   1.0000  -5.6657  -2.9759 
 C  core O  core O  core O  core   2.5000 -25.0000   1.0000  -2.5000  -1.0000 
 H  core C  core C  core H  core  -0.2500  31.2081   0.4539  -4.8923  -2.2677 
@@ -233,7 +234,7 @@ H  core O  core O  core O  core   0.8302  -4.0000  -0.7763  -2.5000  -1.0000
 O  core C  core C  core O  core  -1.4477  16.6853   0.6461  -4.9622  -1.0000 
 O  core C  core O  core C  core  -1.1390  78.0747  -0.0964  -4.5172  -3.0000 
 O  core C  core O  core H  core  -2.5000  70.3345  -1.0000  -5.5315  -3.0000 
-O  core C  core O  core O  core  -0.1583  20.0000   1.5000  -9.0000  -2.0000 
+O  core C  core O  core O  core  -2.0234  80.0000   0.1684  -3.1568  -2.6174 
 O  core O  core O  core O  core  -2.5000  -4.0000   1.0000  -2.5000  -1.0000 
 X  core C  core C  core X  core   0.0000  50.0000   0.3000  -4.0000  -2.0000 
 X  core C  core H  core X  core   0.0000   0.0000   0.0000   0.0000   0.0000 

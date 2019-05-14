@@ -176,7 +176,7 @@ class reaxFF_data:
             # Writing values section
             for index, row in p[connectivity].iterrows():
                 # Remove the 'source' column
-                cur_row = row[row.index!='source']
+                cur_row = row[row.index != 'source']
                 connectivity_symbol = index.split('-')
 
                 # For species, print the chemical symbols directly
@@ -193,7 +193,8 @@ class reaxFF_data:
                     regex(len(print_vals)).format(*print_vals) + '\n'
 
                 for i in range(1, param_lines):
-                    print_vals = cur_row.values[pars_length*i:pars_length*(i+1)]
+                    print_vals = cur_row.values[pars_length *
+                                                i:pars_length*(i+1)]
                     outstr += ' '*(13+c2l_length) + \
                         regex(len(print_vals)).format(*print_vals) + '\n'
 
@@ -303,14 +304,22 @@ class reaxFF_data:
                                  for x in current_ids]
 
                 if 'X' in current_atoms:
+                    # Accepts wildcard specification, only used for torsions
                     self.params[connectivity].loc['-'.join(current_atoms)] = [
                         float(x) for x in params[number_atoms:]]
                 elif '-'.join(current_atoms) in self.params[connectivity].index:
-                    self.params[connectivity].loc['-'.join(current_atoms)] = [
-                        float(x) for x in params[number_atoms:]]
+                    # Else if exists. Key/index stored as a-b-c-d
+                    if any(self.params[connectivity].loc['-'.join(current_atoms)].isna()):
+                        # Make sure that parameter had not yet been read. LAMMPS reads the first
+                        # definition of any parameter. Parameter files in literature
+                        # often comes with multiply defined parameters.
+                        self.params[connectivity].loc['-'.join(current_atoms)] = [
+                            float(x) for x in params[number_atoms:]]
                 elif '-'.join(reversed(current_atoms)) in self.params[connectivity].index:
-                    self.params[connectivity].loc['-'.join(reversed(current_atoms))] = [
-                        float(x) for x in params[number_atoms:]]
+                    # Ditto check for the palindrome of the key
+                    if any(self.params[connectivity].loc['-'.join(current_atoms)].isna()):
+                        self.params[connectivity].loc['-'.join(reversed(current_atoms))] = [
+                            float(x) for x in params[number_atoms:]]
                 else:
                     warn('One of the atoms in {} is not found in initilizing species. Added anyway.'.format(
                         '-'.join(current_atoms)))
