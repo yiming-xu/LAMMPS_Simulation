@@ -92,7 +92,7 @@ class bonds_analysis:
                                               'charge': np.float32})
                     atom_df.set_index('atom_id', inplace=True)
                     atom_df.sort_index(inplace=True)
-                    
+
                     connectivity_df = pd.DataFrame(connectivity_table, columns=[
                                                    'atom_a', 'atom_b', 'bond_order'])
                     connectivity_df = connectivity_df.astype({'atom_a': np.uint32,
@@ -109,7 +109,7 @@ class bonds_analysis:
 
                     with write_progress.get_lock():
                         write_progress.value += 1
-                    write_event.set()                    
+                    write_event.set()
 
         def step_reader(f, in_queue, n_procs):
             """ This function reads 1 step of the trajectory file and sends it to
@@ -122,10 +122,10 @@ class bonds_analysis:
                     assert next(f).startswith('#')
                     n_atoms = int(next(f).split()[-1])
                     assert all([next(f).startswith('#') for _ in range(4)])
-                    
+
                     # Read the whole step and add to in_queue
                     in_queue.put((step_count, [next(f).split()
-                                                for _ in range(n_atoms)]))
+                                               for _ in range(n_atoms)]))
                     # Each step ends with '#'
                     assert next(f).startswith('#')
                     step_count += 1
@@ -140,12 +140,12 @@ class bonds_analysis:
             """ This function gets 1 step from out_queue, calculates
             the needful and writes it to file.
             """
-            #with pd.HDFStore(bond_out, 'w') as store:
+            # with pd.HDFStore(bond_out, 'w') as store:
             write_counter = 0
             atoms_store = pd.HDFStore(bond_out+'_atoms.hdf5', mode='w')
             while write_counter < n_procs:
                 msg = out_queue.get()
-                
+
                 if isinstance(msg, str):
                     write_counter += 1
                 else:
@@ -161,12 +161,13 @@ class bonds_analysis:
             """ This function gets 1 step from out_queue, calculates
             the needful and writes it to file.
             """
-            #with pd.HDFStore(bond_out, 'w') as store:
+            # with pd.HDFStore(bond_out, 'w') as store:
             write_counter = 0
-            connectivity_store = pd.HDFStore(bond_out+'_connectivity.hdf5', mode='w')
+            connectivity_store = pd.HDFStore(
+                bond_out+'_connectivity.hdf5', mode='w')
             while write_counter < n_procs:
                 msg = out_queue.get()
-                
+
                 if isinstance(msg, str):
                     write_counter += 1
                 else:
@@ -192,19 +193,19 @@ class bonds_analysis:
 
         # Reading and files
         f_in = paropen(bond_in, 'r')
-        
+
         # Starts the processes for dataframe processing
         processes = [Process(target=df_producer, args=(
             in_queue, (out_queue_atoms, out_queue_connectivity), write_progress, write_event,)) for _ in range(n_procs)]
 
         # Start a process for read
         processes.append(Process(target=step_reader,
-                                args=(f_in, in_queue, n_procs,)))
+                                 args=(f_in, in_queue, n_procs,)))
         # And processes to write
         processes.append(Process(target=step_writer_atoms,
-                                args=(bond_out, out_queue_atoms, n_procs,)))
+                                 args=(bond_out, out_queue_atoms, n_procs,)))
         processes.append(Process(target=step_writer_connectivity,
-                                args=(bond_out, out_queue_connectivity, n_procs,)))
+                                 args=(bond_out, out_queue_connectivity, n_procs,)))
         for p in processes:
             p.daemon = True
             p.start()
