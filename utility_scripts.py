@@ -304,7 +304,7 @@ def trajectory_convert(ephemeral_out_dir, job_names):
     convert_commands = [["timeout 23h python convert_script_nocopy_fast.py {} {} 32".format(y, os.path.join(ephemeral, x, y+'.lammpstrj'))] for x, y in zip(ephemeral_out_dir, job_names)]
     convert_source_files = [[os.path.join(ephemeral, x, y+".extxyz"),
                              os.path.join(convert_scripts_dir, "convert_script_nocopy_fast.py"),
-                             os.path.join(convert_scripts_dir, "minimal_traj_conversion.py")] for x, y in zip(job_names, ephemeral_out_dir)]
+                             os.path.join(convert_scripts_dir, "minimal_traj_conversion.py")] for x, y in zip(ephemeral_out_dir, job_names)]
     convert_names = [x+"_convert" for x in job_names]
     convert_PBS = PBS_Submitter(job_names=convert_names,
                                 job_commands=convert_commands,
@@ -313,7 +313,7 @@ def trajectory_convert(ephemeral_out_dir, job_names):
                                 proc_nodes=1,
                                 proc_cpus=32, #mpiprocs x threads = cpus
                                 proc_mpiprocs=32, 
-                                memory=60,
+                                memory=20,
                                 source_files=convert_source_files)
 
     return convert_PBS
@@ -332,7 +332,7 @@ def bond_convert(ephemeral_out_dir, job_names):
                              proc_nodes=1,
                              proc_cpus=8, #mpiprocs x threads = cpus
                              proc_mpiprocs=8, 
-                             memory=46,
+                             memory=20,
                              source_files=bond_source_files)
     return bond_PBS
 
@@ -342,8 +342,6 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write_input=False, a
     list_of_elements = sorted(list(set(sim_box.get_chemical_symbols())))
 
     potential = kwargs['potential']
-    if isinstance(potential, str):
-        potential = [potential]
 
     # Default Parameters
     reaxff_params = {
@@ -353,7 +351,7 @@ def reaxff_params_generator(sim_box, job_name, input_fd="", write_input=False, a
 
         # Forcefield definition
         "pair_style": "reax/c NULL safezone 16",
-        "pair_coeff": ['* * ' + '{0} '.format(x) + ' '.join(list_of_elements) for x in potential],
+        "pair_coeff": '* * ' + '{0} '.format(potential) + ' '.join(list_of_elements),
 
         # Run and Minimization
         # "run": "1",
